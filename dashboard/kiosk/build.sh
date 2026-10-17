@@ -11,13 +11,17 @@ BT="$ANDROID_HOME/build-tools/34.0.0"
 JAR="$ANDROID_HOME/platforms/android-34/android.jar"
 KS="$HOME/.android/debug.keystore"
 
-rm -rf build && mkdir -p build/gen build/classes
+rm -rf build && mkdir -p build/gen build/classes build/stub-classes
+
+# Compile-time stub for the hidden android.webkit.SslError (see stubs/). Not dexed.
+javac -nowarn -source 8 -target 8 -classpath "$JAR" -d build/stub-classes \
+  stubs/android/webkit/SslError.java 2>&1 | grep -v "^warning\|^Note\|bootstrap" || true
 
 "$BT/aapt2" compile --dir res -o build/res.zip
-"$BT/aapt2" link -o build/base.apk -I "$JAR" --manifest AndroidManifest.xml build/res.zip \
+"$BT/aapt2" link -o build/base.apk -I "$JAR" --manifest AndroidManifest.xml -A assets build/res.zip \
   --java build/gen --min-sdk-version 23 --target-sdk-version 23 --version-code 1 --version-name 1.0
 
-javac -nowarn -source 8 -target 8 -classpath "$JAR" -d build/classes \
+javac -nowarn -source 8 -target 8 -classpath "$JAR:build/stub-classes" -d build/classes \
   src/com/wesbos/homehq/*.java build/gen/com/wesbos/homehq/R.java 2>&1 | grep -v "^warning\|^Note\|bootstrap" || true
 
 "$BT/d8" --min-api 23 --lib "$JAR" --output build $(find build/classes -name '*.class')
