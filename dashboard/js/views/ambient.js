@@ -1,25 +1,30 @@
-// Ambient (idle photo frame) and Night (dim red clock) overlays.
+// Ambient (idle photo frame) and Night (dim red clock) overlays, live HA edition.
 (function () {
   'use strict';
-  var D = window.DATA, $ = App.$;
+  var HA = window.HA, C = window.HACONFIG, $ = App.$;
   var amb = { show: null }, shiftTimer = null;
 
   function ambientInfo() {
-    var n = App.now(), w = App.weatherNow(), next = App.nextEvent();
+    var n = App.now(), w = App.weatherNow();
+    var mode = HA.state(C.security.modeEntity) || 'Home';
+    var homeCount = App.state.people.filter(function (p) { return p.person && HA.state(p.person) === 'home'; }).length;
     return '<div class="amb-clock"><div class="amb-time num">' + App.fmt.time(n, false) + '</div>' +
       '<div class="amb-date">' + App.fmt.day(n) + ', ' + App.fmt.month(n) + ' ' + n.getDate() + '</div></div>' +
       '<div class="amb-right">' +
-      '<div class="amb-wx">' + App.icon(w.cond, 44) + '<span class="num">' + w.temp + '°</span><small>' + w.summary + '</small></div>' +
-      (next ? '<div class="amb-next" style="' + App.pstyle(App.evColor(next)) + '"><i></i>' + App.esc(next.title) + ' · ' + App.fmt.time(next.start) + '</div>' : '') +
-      '<div class="amb-who">' + D.people.map(function (p) { return App.avatar(p, 34, p.home ? '' : 'avatar--away'); }).join('') + '</div>' +
+      '<div class="amb-wx">' + App.icon(w.cond, 44) + '<span class="num">' + w.temp + '\u00B0</span><small>' + w.label + '</small></div>' +
+      '<div class="amb-mode">' + App.icon(mode === 'Night' ? 'moon' : mode === 'Away' ? 'away' : 'home', 20) + ' ' + mode + ' \u00B7 ' + homeCount + ' home</div>' +
       '</div>';
   }
   function nightInfo() {
-    var n = App.now(), tomorrow = App.addDays(n, n.getHours() < 6 ? 0 : 1);
-    var first = App.timedOn(tomorrow)[0], w = App.weatherNow();
+    var n = App.now(), w = App.weatherNow();
+    var next = HA.state(C.watering.nextRun);
+    var line = App.icon(w.cond, 26) + ' ' + w.temp + '\u00B0';
+    if (next && new Date(next) > n) line += ' \u00B7 Watering ' + App.fmt.hour(new Date(next)) + ' ' + App.fmt.rel(new Date(next));
+    var g = HA.state(C.security.garage.cover);
+    if (g && g !== 'closed') line += ' \u00B7 Garage ' + g;
     return '<div class="nt-time num">' + App.fmt.time(n, false) + '</div>' +
-      '<div class="nt-line">' + App.icon(w.cond, 26) + ' ' + w.temp + '° · ' + (first ? 'First up ' + App.fmt.rel(first.start).toLowerCase() + ': <b>' + App.esc(first.title) + '</b> ' + App.fmt.time(first.start) + ' · ' + App.person(first.people[0]).name : 'Nothing early tomorrow') + '</div>' +
-      '<div class="nt-lock">' + App.icon('lock', 20) + ' House locked · alarm armed</div>';
+      '<div class="nt-line">' + line + '</div>' +
+      '<div class="nt-lock">' + App.icon('door', 20) + ' ' + (HA.on(C.security.leakAggregate) ? 'LEAK DETECTED' : 'Sensors quiet') + '</div>';
   }
 
   function paint() {
@@ -27,7 +32,6 @@
     if (App.mode === 'night') $('#night .nt-inner').innerHTML = nightInfo();
   }
 
-  // Nudge static content a few px every minute so nothing sits still for hours (image retention)
   function pixelShift() {
     var x = Math.round(Math.random() * 8 - 4), y = Math.round(Math.random() * 8 - 4);
     App.$$('.amb-info, .nt-inner').forEach(function (el) { el.style.transform = 'translate(' + x + 'px,' + y + 'px)'; });
@@ -39,14 +43,20 @@
     amb.show = new App.Slideshow($('#ambient .amb-stage'), { layout: 'cover', captions: false, interval: 14000 });
     $('#ambient').addEventListener('click', function () { App.setMode('day'); App.go('home'); });
     $('#night').addEventListener('click', function () { App.setMode('nightdash'); });
+    shiftTimer = setInterval(pixelShift, 60000);
+    HA.loadPhotos();
   });
 
   App.on('mode', function (m) {
-    clearInterval(shiftTimer);
-    if (m === 'ambient') { amb.show.start(); paint(); shiftTimer = setInterval(pixelShift, 60000); }
-    else amb.show.stop();
-    if (m === 'night') { paint(); shiftTimer = setInterval(pixelShift, 60000); }
-    App.resetIdle();
+    var photos = HA.photos && HA.photos.photos && HA.photos.photos.length;
+    if (m === 'ambient' && !photos) {
+      // No photos yet: ambient falls back to a plain dark clock, no slideshow.
+      $('#ambient .amb-stage').innerHTML = '';
+    }
+    if (m === 'ambient' && photos) amb.show.start();
+    if (m !== 'ambient') amb.show.stop();
+    paint();
   });
   App.on('minute', paint);
+  App.on('data', paint);
 })();

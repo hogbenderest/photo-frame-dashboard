@@ -1,0 +1,18 @@
+/* Lists: to-do list tabs + item rows. */
+.lists-wrap { height: 100%; padding: var(--pad); display: flex; flex-direction: column; gap: var(--gap); }
+.li-tabs { display: flex; gap: 10px; flex-wrap: wrap; }
+.li-tab { padding: 10px 20px; border-radius: 999px; border: 2px solid var(--line); background: var(--card); font-size: var(--fs-body); font-weight: 800; color: var(--ink-2); cursor: pointer; }
+.li-tab b { color: var(--ink); }
+.li-tab.is-active { border-color: var(--ink); background: var(--ink); color: var(--paper); }
+.li-tab.is-active b { color: var(--warm); }
+.li-rows { flex: 1; display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: min-content; gap: 8px; align-content: start; overflow: hidden; }
+.li-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: var(--r-s); background: var(--card); border: 2px solid var(--line); }
+.li-check { width: 34px; height: 34px; border-radius: 10px; border: 2px solid var(--ink); background: transparent; display: flex; align-items: center; justify-content: center; color: transparent; cursor: pointer; flex: none; }
+.li-name { font-size: var(--fs-body); font-weight: 700; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.li-x { margin-left: auto; border: none; background: none; color: var(--mute); cursor: pointer; padding: 6px; }
+.li-item.is-done { opacity: .45; }
+.li-item.is-done .li-check { background: var(--ok); border-color: var(--ok); color: #fff; }
+.li-item.is-done .li-name { text-decoration: line-through; }
+.li-done-label { grid-column: 1 / -1; margin-top: 8px; }
+.li-free { font-size: var(--fs-l); color: var(--mute); padding: 12px; }
+.li-note { font-size: var(--fs-min); color: var(--mute); font-weight: 700; letter-spacing: .04em; }

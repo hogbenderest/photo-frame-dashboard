@@ -1,0 +1,27 @@
+/* Security: mode chips, doors/leaks/activity/sirens cards. */
+.sec-wrap { height: 100%; padding: var(--pad); display: flex; flex-direction: column; gap: var(--gap); }
+.sec-modes { display: flex; gap: 10px; }
+.sec-chip { display: flex; align-items: center; gap: 8px; padding: 12px 22px; border-radius: 999px; border: 2px solid var(--line); background: var(--card); font-size: var(--fs-body); font-weight: 800; cursor: pointer; }
+.sec-chip.is-active { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.sec-chip.is-holding { border-color: var(--alert); }
+.sec-grid { flex: 1; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: var(--gap); }
+.sec-card { padding: 14px 18px; border-radius: var(--r); border: 2px solid var(--line); background: var(--card); display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
+.sec-row { display: flex; align-items: center; gap: 10px; font-size: var(--fs-body); padding: 4px 0; }
+.sec-row .i { color: var(--mute); flex: none; }
+.sec-row span { font-weight: 700; }
+.sec-row b { margin-left: auto; font-weight: 800; }
+.sec-row.is-open b, .sec-row.is-wet b { color: var(--alert); }
+.sec-row.is-open .i { color: var(--alert); }
+.sec-row.is-wet .i { color: var(--alert); }
+.sec-row.is-on b { color: var(--ok); }
+.sec-row.is-on .i { color: var(--ok); }
+.sec-garage { flex-wrap: wrap; }
+.sec-gdo { display: flex; gap: 8px; margin-left: auto; }
+.sec-gdo .pill { border: 2px solid var(--line); border-radius: 999px; padding: 4px 12px; font-size: var(--fs-min); font-weight: 800; background: var(--paper); cursor: pointer; }
+.sec-gdo .pill:disabled { opacity: .35; }
+.sec-gdo .pill.is-holding { border-color: var(--alert); }
+.sec-alert { font-size: var(--fs-body); font-weight: 800; color: var(--alert); padding: 6px 10px; border-radius: var(--r-s); background: rgba(var(--alert-rgb), .1); }
+.sec-siren .sec-led { width: 12px; height: 12px; border-radius: 50%; background: var(--line); margin: 0 8px; flex: none; }
+.sec-siren .sec-led.is-on { background: var(--alert); }
+.sec-more { margin-top: auto; border: none; background: none; font-size: var(--fs-min); font-weight: 800; color: var(--ink-2); text-align: left; padding: 4px; cursor: pointer; text-decoration: underline; }
+.sec-note { font-size: var(--fs-min); color: var(--mute); font-weight: 700; letter-spacing: .04em; }

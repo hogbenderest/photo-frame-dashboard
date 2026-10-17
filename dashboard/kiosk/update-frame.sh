@@ -5,7 +5,7 @@ set -e
 export JAVA_HOME=/opt/homebrew/opt/openjdk@17
 export PATH=$JAVA_HOME/bin:$PATH
 FRAME=${1:-192.168.86.197:5555}
-ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"  # script lives in <repo>/dashboard/kiosk/
 
 echo "Building dashboard..."
 cd "$ROOT/dashboard"

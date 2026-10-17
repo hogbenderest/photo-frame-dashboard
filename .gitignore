@@ -1,4 +1,6 @@
 # Device dumps, personal identifiers, downloaded tools, and local diagnostics.
+# ha.json holds the live HA URL + limited-user token; bundled into the APK only.
+/dashboard/kiosk/assets/ha.json
 /backups/
 /diagnostics/
 /log/

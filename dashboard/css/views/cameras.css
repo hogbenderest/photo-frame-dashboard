@@ -1,0 +1,19 @@
+/* Cameras: snapshot grid + enlarge sheet. */
+.cam-grid { height: 100%; padding: var(--gap); display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: 1fr 1fr; gap: var(--gap); }
+.cam-tile { position: relative; border-radius: var(--r); border: 2px solid var(--line); background: var(--ink); overflow: hidden; cursor: pointer; }
+.cam-img { position: absolute; inset: 0 0 52px 0; background: #111; }
+.cam-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cam-img img.is-broken { opacity: .3; }
+.cam-demo { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #555; }
+.cam-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 52px; padding: 6px 12px; background: rgba(17 17 17 / .85); color: #fff; display: flex; align-items: center; gap: 10px; }
+.cam-bar b { font-size: var(--fs-body); font-weight: 800; flex: none; }
+.cam-chips { display: flex; gap: 5px; overflow: hidden; }
+.cam-chip { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: rgba(255 255 255 / .18); white-space: nowrap; }
+.cam-chip.is-on { background: var(--alert); }
+.cam-tap { position: absolute; top: 8px; right: 10px; font-size: 11px; font-weight: 700; color: rgba(255 255 255 / .55); letter-spacing: .06em; text-transform: uppercase; }
+.sheet--cam .sheet { width: 1040px; max-width: 96vw; }
+.cam-big { display: flex; flex-direction: column; gap: 10px; }
+.cam-big-name { font-size: var(--fs-l); }
+.cam-big-img { width: 100%; height: 520px; background: #111; border-radius: var(--r-s); overflow: hidden; }
+.cam-big-img img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.cam-big-meta { display: flex; justify-content: flex-end; font-size: var(--fs-min); color: var(--mute); font-weight: 700; }

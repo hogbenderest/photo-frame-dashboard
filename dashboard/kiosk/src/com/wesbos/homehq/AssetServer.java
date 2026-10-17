@@ -82,6 +82,10 @@ public class AssetServer {
       if (path.contains("..")) { respond(s, 403, "text/plain", "forbidden".getBytes()); return; }
 
       String name = "dashboard" + path;
+      // Kiosk-only HA connection config (APK asset, NOT part of dashboard/dist
+      // so it never deploys with the public Worker build). Holds the LAN URL
+      // and the limited-user token; absence falls the dashboard back to demo.
+      if (path.equals("/ha.json")) name = "ha.json";
       InputStream a = context.getAssets().open(name);
       ByteArrayOutputStream out = new ByteArrayOutputStream();
       byte[] buf = new byte[8192];
@@ -92,11 +96,34 @@ public class AssetServer {
       String ext = dot > 0 ? path.substring(dot + 1) : "";
       String type = TYPES.containsKey(ext) ? TYPES.get(ext) : "application/octet-stream";
       respond(s, 200, type, out.toByteArray());
+      drain(in); // consume the rest of the request so close() sends FIN, not RST
     } catch (IOException e) {
       respond(s, 404, "text/plain", "not found".getBytes());
+      drain(s.getInputStream());
     } finally {
       try { s.close(); } catch (IOException ignored) {}
     }
+  }
+
+  /**
+   * Chromium sends the whole request (headers and all) in one write; this
+   * server only parses the request line. Closing with unread bytes in the
+   * receive buffer makes the kernel send RST, which races the response body
+   * and can fail the load with ERR_CONNECTION_RESET. Read whatever is left
+   * (bounded wait for stragglers) before the caller closes the socket.
+   */
+  private void drain(InputStream in) {
+    long deadline = System.currentTimeMillis() + 300;
+    byte[] buf = new byte[2048];
+    try {
+      while (System.currentTimeMillis() < deadline) {
+        if (in.available() > 0) {
+          if (in.read(buf) == -1) return;
+        } else {
+          Thread.sleep(4);
+        }
+      }
+    } catch (Exception ignored) {}
   }
 
   private void respond(Socket s, int code, String type, byte[] body) throws IOException {

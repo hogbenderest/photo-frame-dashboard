@@ -1,9 +1,17 @@
 // Photo slideshow used by the Photos view, ambient mode and the home tile.
+// Pool: HA.photos (sync pipeline / demo), falling back to nothing.
 (function () {
   'use strict';
-  var D = window.DATA;
+  var HA = window.HA;
+
+  function pool() {
+    var m = HA && HA.photos;
+    return (m && m.photos && m.photos.length) ? m.photos : [];
+  }
+  App.photoPool = pool;
 
   function src(p, big) {
+    if (p.url) return p.url; // sync-pipeline photos are pre-sized JPEGs
     var w = p.o === 'p' ? 800 : 1600, h = p.o === 'p' ? 1200 : 1000;
     if (!big) { w = Math.round(w / 2); h = Math.round(h / 2); }
     return App.img(p.seed, w, h);
@@ -76,7 +84,7 @@
 
   S.refill = function () {
     var q = [];
-    D.photos.forEach(function (p) { q.push(p); if (p.fav) q.push(p); });
+    pool().forEach(function (p) { q.push(p); if (p.fav) q.push(p); });
     // On-this-day photos always come first in a fresh cycle
     shuffle(q).sort(function (a, b) { return (App.photoMeta(b).onThisDay ? 1 : 0) - (App.photoMeta(a).onThisDay ? 1 : 0); });
     this.queue = q;
@@ -92,10 +100,10 @@
     if (!first) return null;
     var self = this;
     function sibling(pred) {
-      return self.take(pred) || D.photos.filter(function (x) { return x !== first && pred(x); })[0];
+      return self.take(pred) || pool().filter(function (x) { return x !== first && pred(x); })[0];
     }
     if (layout === 'auto') {
-      if (first.o === 'p') layout = D.photos.some(function (x) { return x !== first && x.tag === first.tag; }) ? 'pair' : 'polaroid';
+      if (first.o === "p") layout = pool().some(function (x) { return x !== first && x.tag === first.tag; }) ? 'pair' : 'polaroid';
       else layout = n % 5 === 3 ? 'collage' : n % 5 === 4 ? 'polaroid' : 'cover';
     }
     var ps = [first];
