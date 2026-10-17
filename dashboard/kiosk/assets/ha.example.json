@@ -1,5 +1,5 @@
 {
   "_comment": "Copy to ha.json, fill in real values, never commit ha.json. The kiosk AssetServer serves it at http://127.0.0.1:8123/ha.json (loopback only). url is the HA LAN address over plain HTTP (the frame's Android 6 CA store cannot validate modern HTTPS); token is a long-lived access token for the limited 'frame-dashboard' user. Create that user first and allowlist the entities from docs/frame-dashboard.md.",
   "url": "http://192.168.86.109:8123",
-  "token": "REPLACE_WITH_LONG_LIVED_TOKEN"
+  "token": "REDACTED-REVOKED-HA-TOKEN"
 }

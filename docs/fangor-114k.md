@@ -188,6 +188,29 @@ flag serves the loopback HTTP origin.
 - Note: the frame is being touched by household members during sessions - always read
   `App.current` before diagnosing a "wrong view".
 
+## Session 6 (2026-10-18): live token in, CORS saga, http YAML is dead config
+
+- User created the limited HA user + token and `assets/ha.json`; deployed.
+- **Live verified on-frame**: `STATE ha: live` - the WebSocket path (auth, `get_states`,
+  `subscribe_entities`) works end-to-end with the limited user. DevTools probe had to be
+  re-forwarded (pid unchanged; stale forward after several hours).
+- **REST calls failed at CORS preflight** (`403` + `net::ERR_FAILED` on /api/wine_cellar,
+  /api/calendars, and by extension camera stills + service calls). The assumption "HA /api is
+  CORS-open" does not hold on 2026.10: browsers preflight Authorization-header requests and HA
+  rejects unlisted origins.
+- **First fix attempt was wrong**: added `http: cors_allowed_origins` to configuration.yaml +
+  restarted HA (00:05, clear of the watering window; HA came back RUNNING). CORS still 403.
+  Root cause per HA 2026.10.1 source: the http integration is storage-managed since 2026.8 -
+  `.storage/http` shows `yaml_migration_done: true`; YAML is migrated once then ignored
+  (repair issue only). No config entry exists for it, so MCP integration tools can't drive it.
+- **Correct path (docs + HA integration page)**: Settings -> System -> Network -> HTTP server ->
+  CORS allowed origins -> add `http://127.0.0.1:8123`; save restarts HA; confirm within the
+  5-minute promotion window. The pending/stable store auto-reverts unconfirmed changes.
+- **YAML reverted** from `configuration.yaml.bak-20261017-frame-cors` (left in place as the
+  rollback record); the repair issue clears on the next HA boot.
+- Frame remains functional meanwhile: WS state layer live; REST-dependent features (calendar,
+  wine, camera stills, service calls) blocked until the CORS origin is added in the UI.
+
 ## Open questions
 
 - Why did the frame drop off USB mid-session? (FOTA reboot suspected but unverified - check uptime and Frameo version when it returns.)

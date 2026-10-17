@@ -68,6 +68,16 @@ Each step has an undo. Do them in this order.
    `todo.chores_ian` ... `todo.chores_himack` - keep exactly those slugs (the config depends on
    them). Then define recurring chores in `dashboard/js/ha-config.js` -> `chores.recurrences`.
    *Undo:* delete each helper.
+3a. **Allow the frame origin for CORS (required for REST calls)**
+   Since HA 2026.8 the `http:` block is UI/storage-managed; YAML is migrated once and then
+   silently ignored (with only a repair issue). Do NOT edit `configuration.yaml`.
+   UI path: Settings -> System -> Network -> HTTP server -> **CORS allowed origins**, add
+   `http://127.0.0.1:8123` (identical for every frame: the kiosks all serve on loopback).
+   Saving restarts HA; an admin must confirm the new settings within 5 minutes or HA reverts
+   automatically. Without this step, the WebSocket data layer works but every REST call
+   (service calls, camera stills, calendar, wine) fails at the CORS preflight with 403.
+   Symptom on the frame: `net::ERR_FAILED` on /api/* fetches in the DevTools probe.
+   *Undo:* remove the origin in the same UI.
 4. **Google Calendar (2lawlerst@gmail.com)**
    HA UI: Settings -> Devices & Services -> Add Integration -> Google Calendar; authorize the
    account. Add each calendar entity ID you want on the frame to
@@ -165,5 +175,13 @@ node scripts/frame-devtools.mjs          # reload + capture console/network/stat
    Account for it when testing taps on a running frame (a stray 60 s can undo your navigation).
 6. **update-frame.sh path bug (fixed)**: ROOT was resolved three levels up; only worked when the
    steps were run by hand. Now two levels (script lives in `<repo>/dashboard/kiosk/`).
-7. The frame *is* being touched by household members during testing - assume non-deterministic
+7. **HA `http:` YAML is dead config since 2026.8** (2026-10-18): an `http: cors_allowed_origins`
+   block added to configuration.yaml was silently ignored after the usual restart - HA has
+   migrated http to a storage store (`yaml_migration_done: true` in `.storage/http`) and only
+   raises a repair issue for lingering YAML. CORS origins are edited in the UI:
+   Settings -> System -> Network -> HTTP server; saving restarts HA and an admin must confirm
+   within 5 minutes (pending/stable trial with auto-revert). Verified via HA 2026.10.1 source
+   (`components/http/config.py`) and the official integration docs. YAML edit reverted from
+   `configuration.yaml.bak-20261017-frame-cors`; the repair issue clears on the next boot.
+8. The frame *is* being touched by household members during testing - assume non-deterministic
    navigation state; always read `location.hash`/`App.current` before diagnosing "wrong view".
