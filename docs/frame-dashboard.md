@@ -183,5 +183,22 @@ node scripts/frame-devtools.mjs          # reload + capture console/network/stat
    within 5 minutes (pending/stable trial with auto-revert). Verified via HA 2026.10.1 source
    (`components/http/config.py`) and the official integration docs. YAML edit reverted from
    `configuration.yaml.bak-20261017-frame-cors`; the repair issue clears on the next boot.
-8. The frame *is* being touched by household members during testing - assume non-deterministic
+8. **HA 2026.10 todo API specifics**: items are not exposed in entity attributes; fetch them
+   with `POST /api/services/todo/get_items?return_response` and pass
+   `status: ["needs_action","completed"]` (the default is needs_action only). `update_item` and
+   `remove_item` identify items by `item` (the summary TEXT, required) - there is no
+   `item_uid` in this version's service schema and sending one 400s. `js/ha.js` (`HA.todoItems`)
+   is the single place these shapes live.
+9. **Response-returning services via REST** need `?return_response` on the URL (the plain
+   endpoint 400s with "caller did not ask for responses" - the error text tells you).
+10. **Cork Dork bare-endpoint 400 (fixed 2026-10-18)**: `http_api.py` always passed
+   `cabinet_id` (None when the query omits it) into `GET_WINES_SCHEMA`, whose `cv.string`
+   validator rejects None - so every bare call to `/api/wine_cellar/wines` had always 400'd.
+   Fixed with `vol.Any(cv.string, None)` in `wine_response.py` (backup
+   `wine_response.py.backup.20261018_0037_cabinet_none` in the integration directory); HA
+   restart required to load it.
+11. **Prebuilt views need resume()**: the shell prebuilds every hidden view (show + hide) so
+   tab switches are instant. A view whose hide() stops timers/drops images must restart them in
+   resume(), or it looks dead on entry. All views now repaint/restart on resume.
+12. The frame *is* being touched by household members during testing - assume non-deterministic
    navigation state; always read `location.hash`/`App.current` before diagnosing "wrong view".

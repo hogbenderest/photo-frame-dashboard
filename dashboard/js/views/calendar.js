@@ -89,8 +89,9 @@
       var usable = C.calendar.entities.filter(function (c) { return !HA.unavailable(c.id); });
       if (!usable.length) { V.el.innerHTML = '<div class="cl-wrap">' + emptyState() + '</div>'; return; }
       V.el.innerHTML = '<div class="cl-empty">' + App.icon('calendar', 44) + '<div class="serif">Loading\u2026</div></div>';
-      load().then(function (events) { if (App.current === 'calendar') paint(events); });
+      load().then(function (events) { if (V.el) paint(events); });
     },
+    resume: function () { if (V.el) load().then(function (events) { if (V.el) paint(events); }); },
     hide: function () {}
   });
   App.on('data', function () {

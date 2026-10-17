@@ -28,7 +28,7 @@ await send('Network.enable');
 
 const arg = process.argv[2];
 if (arg) {
-  const r = await send('Runtime.evaluate', { expression: arg, returnByValue: true });
+  const r = await send('Runtime.evaluate', { expression: arg, returnByValue: true, awaitPromise: true });
   console.log(JSON.stringify(r.result, null, 1).slice(0, 6000));
 } else {
   await send('Page.reload', { ignoreCache: true });

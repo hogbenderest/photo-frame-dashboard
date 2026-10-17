@@ -55,6 +55,7 @@
   }
   function touch(id) {
     dirty[id] = true;
+    if (id.indexOf('todo.') === 0 && HA.invalidateTodo) HA.invalidateTodo(id);
     if (!dirtyTimer) dirtyTimer = setTimeout(flush, 600);
   }
 
@@ -95,10 +96,41 @@
   HA.wineInventory = function (force) {
     if (!force && HA.wine && Date.now() - HA.wineAt < 3600e3) return Promise.resolve(HA.wine);
     if (HA.status === 'demo') { HA.wine = window.DEMO_PAYLOADS.wine; HA.wineAt = Date.now(); return Promise.resolve(HA.wine); }
-    return rest('/api/wine_cellar/wines?limit=500&include_buy_list=false&include_history=false').then(function (j) {
+    // Bare ?limit=500: include_* booleans are omitted (their defaults are what
+    // we want) and cabinet_id must stay absent until the Cork Dork schema fix
+    // is live (verified: cabinet_id=None used to 400 every bare call).
+    return rest('/api/wine_cellar/wines?limit=500').then(function (j) {
       HA.wine = j; HA.wineAt = Date.now(); return j;
     });
   };
+
+  // To-do items are NOT exposed in entity attributes on HA 2026.10; fetch them
+  // through the response-returning service. Cached per entity and invalidated
+  // whenever that entity's state changes (the item-count state is the dirty
+  // signal; the WS delta triggers 'data' which clears the cache).
+  // HA 2026.10 todo services are summary-based: update/remove take `item` (the
+  // text, required) - there is no item_uid in this version's service schema.
+  var todoCache = {};
+  HA.todoItems = function (entityId) {
+    if (HA.status === 'demo') {
+      var st = HA.get(entityId);
+      return Promise.resolve((st && st.attributes && st.attributes.items) || []);
+    }
+    if (todoCache[entityId]) return Promise.resolve(todoCache[entityId]);
+    return fetch(HA.url + '/api/services/todo/get_items?return_response', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + HA.token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entity_id: entityId, status: ['needs_action', 'completed'] })
+    }).then(function (r) {
+      if (!r.ok) throw new Error('todo.get_items HTTP ' + r.status);
+      return r.json();
+    }).then(function (j) {
+      var items = (j.service_response && j.service_response[entityId] && j.service_response[entityId].items) || [];
+      todoCache[entityId] = items;
+      return items;
+    });
+  };
+  HA.invalidateTodo = function (entityId) { delete todoCache[entityId]; };
 
   HA.calendarEvents = function (entityId, startISO, endISO) {
     // Demo payloads are REST-shaped, same as /api/calendars/<id> responses.

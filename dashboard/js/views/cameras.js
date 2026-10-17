@@ -19,7 +19,7 @@
     HA.cameraStill(id).then(function (blob) {
       var old = V.urls[id];
       V.urls[id] = URL.createObjectURL(blob);
-      if (imgEl) imgEl.src = V.urls[id];
+      if (imgEl) imgEl.innerHTML = '<img src="' + V.urls[id] + '" alt="">';
       if (old) try { URL.revokeObjectURL(old); } catch (e) {}
     }).catch(function () {
       if (imgEl) imgEl.classList.add('is-broken');
@@ -106,6 +106,9 @@
 
   App.register('cameras', {
     show: function (el) { V.el = el; paint(); },
+    // The shell prebuilds hidden views (show + hide); hide() stops the polling
+    // timers and drops the images, so re-entering the view must restart them.
+    resume: function () { if (V.el) paint(); },
     hide: function () { stopTimers(); releaseImgs(); }
   });
   App.on('data', function () {

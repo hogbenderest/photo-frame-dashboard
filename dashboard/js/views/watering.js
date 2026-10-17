@@ -122,6 +122,9 @@
     });
   }
 
-  App.register('watering', { show: function (el) { V.el = el; paint(); } });
+  App.register('watering', {
+    show: function (el) { V.el = el; paint(); },
+    resume: function () { if (V.el) paint(); }
+  });
   App.on('data', function () { if (App.current === 'watering' && V.el) paint(); });
 })();

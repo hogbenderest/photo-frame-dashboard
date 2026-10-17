@@ -118,6 +118,9 @@
     });
   }
 
-  App.register('security', { show: function (el) { V.el = el; paint(); } });
+  App.register('security', {
+    show: function (el) { V.el = el; paint(); },
+    resume: function () { if (V.el) paint(); }
+  });
   App.on('data', function () { if (App.current === 'security' && V.el) paint(); });
 })();

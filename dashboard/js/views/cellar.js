@@ -120,15 +120,16 @@
   }
 
   App.register('cellar', {
-    show: function (el) {
-      V.el = el;
-      if (!V.wine || V.wine.error) { // error results never stick: always retry on open
-        if (V.wine && V.wine.error) V.wine = null;
-        paint();
-        HA.wineInventory(true).then(function (j) { V.wine = j; paint(); }).catch(function () { V.wine = { error: true }; paint(); });
-      } else paint();
-    },
+    show: function (el) { V.el = el; openCellar(); },
+    resume: function () { if (V.el) openCellar(); },
     hide: function () {}
   });
+  function openCellar() {
+    if (!V.wine || V.wine.error) { // error results never stick: always retry on open
+      if (V.wine && V.wine.error) V.wine = null;
+      paint();
+      HA.wineInventory(true).then(function (j) { V.wine = j; paint(); }).catch(function () { V.wine = { error: true }; paint(); });
+    } else paint();
+  }
   App.on('data', function () { if (App.current === 'cellar' && V.el) paint(); });
 })();

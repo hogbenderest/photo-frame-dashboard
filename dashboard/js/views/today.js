@@ -147,6 +147,7 @@
       }
       paint();
     },
+    resume: function () { if (V.el && V.el.firstChild) paint(); },
     hide: function () {}
   });
   // Every minute: clock. Weather on the hour.

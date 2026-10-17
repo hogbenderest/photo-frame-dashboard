@@ -1,18 +1,32 @@
 // Lists: Apple Reminders shared lists (via HA CalDAV, once configured) plus
 // the built-in shopping list. Check off, uncheck and remove from the panel;
 // adding items happens on phones (a wall panel has no keyboard).
+// Items come from the response-returning todo.get_items service: HA 2026.10
+// does not expose them in entity attributes. Tab badges use the entity state
+// (the pending count), which updates over the WebSocket for free.
 (function () {
   'use strict';
-  var C = window.HACONFIG, HA = window.HA, V = { tab: null };
+  var C = window.HACONFIG, HA = window.HA, V = { tab: null, items: {} };
 
-  function itemsOf(id) { var a = HA.attr(id, 'items'); return Array.isArray(a) ? a : []; }
+  function fetchList(l) {
+    return HA.todoItems(l.id).then(function (items) {
+      V.items[l.id] = items;
+    }).catch(function () {
+      V.items[l.id] = V.items[l.id] || [];
+    });
+  }
+  function refresh() {
+    return Promise.all(C.lists.lists.map(fetchList)).then(function () {
+      if (App.current === 'shopping' && V.el) paint();
+    });
+  }
 
   function tabs() {
     return C.lists.lists.map(function (l, i) {
-      var n = itemsOf(l.id).filter(function (it) { return it.status !== 'completed'; }).length;
+      var n = HA.state(l.id);
       var active = (V.tab === null ? i === 0 : V.tab === i) ? ' is-active' : '';
       return '<button class="li-tab' + active + '" data-tab="' + i + '">' + App.esc(l.name) +
-        (n ? ' <b class="num">' + n + '</b>' : '') + '</button>';
+        (n !== null ? ' <b class="num">' + n + '</b>' : '') + '</button>';
     }).join('');
   }
 
@@ -25,14 +39,15 @@
         '<div class="serif">' + App.esc(l.name) + ' isn\u2019t available yet</div>' +
         '<small>Shared Apple Reminders lists appear after the HA CalDAV integration is configured for iCloud. Then add the new todo.* entity IDs to js/ha-config.js lists.</small></div>';
     }
-    var items = itemsOf(l.id);
+    var items = V.items[l.id];
+    if (!items) return '<div class="cl-empty">' + App.icon('cart', 44) + '<div class="serif">Loading\u2026</div></div>';
     var open = items.filter(function (it) { return it.status !== 'completed'; });
     var done = items.filter(function (it) { return it.status === 'completed'; });
     function row(it, isDone) {
       return '<div class="li-item' + (isDone ? ' is-done' : '') + '">' +
-        '<button class="li-check" data-toggle="' + App.esc(l.id) + '" data-uid="' + App.esc(it.uid) + '" data-status="' + App.esc(it.status) + '">' + App.icon('check', 20) + '</button>' +
+        '<button class="li-check" data-toggle="' + App.esc(l.id) + '" data-item="' + App.esc(it.summary) + '" data-status="' + App.esc(it.status) + '">' + App.icon('check', 20) + '</button>' +
         '<span class="li-name">' + App.esc(it.summary) + '</span>' +
-        '<button class="li-x" data-remove="' + App.esc(l.id) + '" data-uid="' + App.esc(it.uid) + '" aria-label="Remove">' + App.icon('x', 16) + '</button>' +
+        '<button class="li-x" data-remove="' + App.esc(l.id) + '" data-item="' + App.esc(it.summary) + '" aria-label="Remove">' + App.icon('x', 16) + '</button>' +
         '</div>';
     }
     return '<div class="li-rows">' +
@@ -58,21 +73,24 @@
       var tg = e.target.closest('[data-toggle]');
       if (tg) {
         var to = tg.dataset.status === 'completed' ? 'needs_action' : 'completed';
-        HA.callService('todo.update_item', { entity_id: tg.dataset.toggle, item_uid: tg.dataset.uid, status: to })
+        HA.callService('todo.update_item', { entity_id: tg.dataset.toggle, item: tg.dataset.item, status: to })
+          .then(function () { HA.invalidateTodo(tg.dataset.toggle); return refresh(); })
           .catch(function () { App.toast('Couldn\u2019t update the list', { tone: 'error', icon: 'bolt' }); });
         return;
       }
       var rm = e.target.closest('[data-remove]');
       if (rm) {
-        HA.callService('todo.remove_item', { entity_id: rm.dataset.remove, item_uid: rm.dataset.uid })
+        HA.callService('todo.remove_item', { entity_id: rm.dataset.remove, item: rm.dataset.item })
+          .then(function () { HA.invalidateTodo(rm.dataset.remove); return refresh(); })
           .catch(function () { App.toast('Couldn\u2019t remove the item', { tone: 'error', icon: 'bolt' }); });
       }
     });
   }
 
   App.register('shopping', {
-    show: function (el) { V.el = el; paint(); },
+    show: function (el) { V.el = el; paint(); refresh(); },
+    resume: function () { if (V.el) { paint(); refresh(); } },
     hide: function () {}
   });
-  App.on('data', function () { if (App.current === 'shopping' && V.el) paint(); });
+  App.on('data', function () { if (App.current === 'shopping' && V.el) refresh(); });
 })();

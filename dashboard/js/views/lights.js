@@ -123,7 +123,8 @@
 
   App.register('lights', {
     show: function (el) { V.el = el; paint(); },
-    hide: function () { V.el.removeEventListener('click', function () {}); }
+    resume: function () { if (V.el) paint(); },
+    hide: function () {}
   });
   App.on('data', function () { if (App.current === 'lights' && V.el) paint(); });
 })();

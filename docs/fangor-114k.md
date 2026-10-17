@@ -211,6 +211,30 @@ flag serves the loopback HTTP origin.
 - Frame remains functional meanwhile: WS state layer live; REST-dependent features (calendar,
   wine, camera stills, service calls) blocked until the CORS origin is added in the UI.
 
+- **CORS origin added via the UI and promoted** (Settings > System > Network; confirmed inside
+  the 5-minute window; `.storage/http` shows both origins, `pending: null`). Everything that
+  follows is verified ON-FRAME end-to-end (tour script `scripts/frame-tour.mjs`):
+  - `/api/calendars/...` 200, **28 irrigation events rendered** on the Calendar tab.
+  - `/api/wine_cellar/wines` 200, **141 bottles** in the Cellar view. Required a one-line fix in
+    the Cork Dork integration: `GET_WINES_SCHEMA` rejected `cabinet_id=None`, so **every bare
+    call to the endpoint had always 400'd** (`http_api.py` always passes the key). Fixed in
+    `wine_response.py` (`vol.Any(cv.string, None)`), backup
+    `wine_response.py.backup.20261018_0037_cabinet_none`, HA restarted to load it. Verified:
+    `?cabinet_id=x` 200 before the fix (isolation), bare 200 after.
+  - `/api/camera_proxy/*` 200, images render (981 KB screenshot of the Cameras tab).
+  - todo round-trip: add + remove 200, test item cleaned up.
+- **HA 2026.10 todo API is summary-based**: `remove_item`/`update_item` take `item` (the text,
+  required); `item_uid` does not exist in this version's service schema (400). Items are NOT in
+  entity attributes; fetch via `todo.get_items?return_response` with an explicit status list
+  (default is needs_action only). Views reworked accordingly (js/ha.js `HA.todoItems`).
+- **Prebuilt-view resume bug class**: the shell prebuilds hidden views (show+hide); views that
+  stop timers in hide() must restart them in resume(), or the tab looks dead on entry. All views
+  now have resume() repaint/restart.
+- Camera tiles: fetched stills were assigned to the container div's `.src` (no-op); now inserted
+  as `<img>` children.
+- Final state: `ha: live`, kiosk focused, all 10 tabs rendering live data. Remaining owner
+  checklist items: chores to-do helpers, Google Calendar, CalDAV, Photos sync pipeline.
+
 ## Open questions
 
 - Why did the frame drop off USB mid-session? (FOTA reboot suspected but unverified - check uptime and Frameo version when it returns.)
