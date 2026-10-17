@@ -67,6 +67,7 @@
   }
 
   function bind() {
+    if (V.el._bound) return; V.el._bound = true;
     V.el.addEventListener('pointerdown', function (e) {
       var z = e.target.closest('[data-zone]');
       if (z) {

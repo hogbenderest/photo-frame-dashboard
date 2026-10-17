@@ -64,6 +64,7 @@
   }
 
   function bind() {
+    if (V.el._bound) return; V.el._bound = true;
     V.el.addEventListener('click', function (e) {
       var it = e.target.closest('[data-check]');
       if (!it) return;

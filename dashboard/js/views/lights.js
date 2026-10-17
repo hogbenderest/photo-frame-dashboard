@@ -56,6 +56,7 @@
   }
 
   function bind() {
+    if (V.el._bound) return; V.el._bound = true;
     V.el.addEventListener('click', function (e) {
       var t = e.target.closest('[data-light]');
       if (t) { toggle(t.dataset.light); return; }

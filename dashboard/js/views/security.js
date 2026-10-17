@@ -72,6 +72,7 @@
   }
 
   function bind() {
+    if (V.el._bound) return; V.el._bound = true;
     V.el.addEventListener('pointerdown', function (e) {
       var chip = e.target.closest('[data-mode]');
       if (chip) {

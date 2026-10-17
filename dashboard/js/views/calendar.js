@@ -49,7 +49,6 @@
     var start = new Date(App.now()); start.setHours(0, 0, 0, 0);
     var days = [];
     for (var i = 0; i < C.calendar.days; i++) days.push(App.addDays(start, i));
-    var cal = events.filter(function (e) { return e.cal === C.calendar.entities[0].name; });
     V.el.innerHTML = '<div class="cal-agenda-wrap">' +
       '<div class="cal-agenda-head"><div class="label">Next ' + C.calendar.days + ' days</div>' +
       '<div class="cal-legend">' + C.calendar.entities.map(function (c) {
@@ -57,7 +56,9 @@
       }).join('') + '</div></div>' +
       '<div class="cal-grid">' + days.map(function (d, i) { return dayCard(d, events, i); }).join('') + '</div>' +
       '</div>';
-    V.el.addEventListener('click', function (e) {
+    if (!V.el._clickBound) {
+      V.el._clickBound = true;
+      V.el.addEventListener('click', function (e) {
       var b = e.target.closest('[data-ev]');
       if (!b) return;
       var parts = b.dataset.ev.split('|');
@@ -73,6 +74,7 @@
         (ev.desc ? '<div class="cl-kv"><span>Notes</span><b>' + App.esc(ev.desc) + '</b></div>' : '') +
         '</div></div>');
     });
+    }
   }
 
   function emptyState() {

@@ -47,10 +47,13 @@
 
   function paint() {
     V.el.innerHTML = '<div class="cam-grid">' + C.cameras.map(tile).join('') + '</div>';
-    V.el.addEventListener('click', function (e) {
-      var t = e.target.closest('[data-cam]');
-      if (t) enlarge(t.dataset.cam);
-    });
+    if (!V.el._clickBound) {
+      V.el._clickBound = true;
+      V.el.addEventListener('click', function (e) {
+        var t = e.target.closest('[data-cam]');
+        if (t) enlarge(t.dataset.cam);
+      });
+    }
     // Staggered snapshot polling: one tile every gridRefreshMs / N, so only one
     // image is in flight at a time.
     var step = Math.max(1500, C.camera.gridRefreshMs / C.cameras.length);

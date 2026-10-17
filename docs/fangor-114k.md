@@ -154,6 +154,40 @@ untrusted IoT device on the LAN (guest SSID would be reasonable).
 MainActivity (harmless; seedca only runs with `--ez seedca true`). The `usesCleartextTraffic`
 flag serves the loopback HTTP origin.
 
+## Session 5 (2026-10-17): frame dashboard v1 (live HA, demo until token)
+
+- **Frame -> HA reachability verified**: `192.168.86.197 -> 192.168.86.109:8123 ESTABLISHED`
+  (via `/proc/net/tcp` after loading the URL in the stock browser; the little-endian hex of the
+  remote address is `6D56A8C0:1FBB`, first attempt grepped the wrong byte order and found nothing).
+- **Baselines taken** before any change: working APK pulled to
+  `backups/kiosk-apks/20261017-pre-frame-dashboard-base.apk` (SHA-256 `af6fa778...`),
+  pm-state snapshot (homehq HOME, fota + frameo + systemui disabled), screenshot
+  `backups/screenshots/20261017-baseline-wesbos.png`; git commit `9a0423b` + tag
+  `takeover-baseline-20261017`, work on branch `frame-dashboard`.
+- **Dashboard rewritten end-to-end** for this house (10 rail tabs, live HA data layer,
+  token-out-of-bundle). Details: `docs/frame-dashboard.md`. Deployed and verified on-frame
+  (demo mode; white-screen incident below). Rollback = archived APK.
+- **White-screen root cause (new gotcha, fixed in AssetServer)**: the server read only the
+  request line and closed; the unread remainder of Chromium's request made the kernel send
+  RST, which raced the response body. curl (small headers) won the race; the larger new
+  index.html lost it almost always -> `ERR_CONNECTION_RESET` on the document, pure-white
+  5.9 KB screenshots, self-healing reload loop. Fix: `drain()` the request before close.
+  Diagnosis was via DevTools over `adb forward tcp:9222 localabstract:webview_devtools_remote_<pid>`
+  with `--ez debug true` (Android 6 `pidof` is useless; use `ps | grep`).
+- **update-frame.sh path bug found**: ROOT resolved three levels up; only worked when the steps
+  were run by hand. Fixed to two levels (script lives in `<repo>/dashboard/kiosk/`).
+- **HA changes (via ha-mcp, fetched back and validated)**: created
+  `script.retic_frame_test_zone` (mode single) and `script.retic_frame_test_valve` (mode
+  restart), both capping duration at 120 s for the WaterCorp 2-minute testing allowance; only
+  the frame calls them. Deliberate, surfaced deviation from review advice: no roster-day gate,
+  because the testing allowance is an any-day carve-out. To-do helpers could NOT be created
+  via MCP (`Unknown helper_type 'todo'` - only storage helpers) -> the seven chores lists are
+  on the owner checklist in `docs/frame-dashboard.md`.
+- **Verified on-frame**: boot to demo, all subresources 200, `input tap` navigation
+  (Watering/Today), pixel-verified render (160 KB screenshot, paper/ink palette).
+- Note: the frame is being touched by household members during sessions - always read
+  `App.current` before diagnosing a "wrong view".
+
 ## Open questions
 
 - Why did the frame drop off USB mid-session? (FOTA reboot suspected but unverified - check uptime and Frameo version when it returns.)

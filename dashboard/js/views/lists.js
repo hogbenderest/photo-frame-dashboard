@@ -51,6 +51,7 @@
   }
 
   function bind() {
+    if (V.el._bound) return; V.el._bound = true;
     V.el.addEventListener('click', function (e) {
       var t = e.target.closest('[data-tab]');
       if (t) { V.tab = +t.dataset.tab; paint(); return; }
