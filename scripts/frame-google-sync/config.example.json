@@ -1,0 +1,10 @@
+{
+  "_comment": "Copy to ~/.config/frame-google-sync/config.json and chmod 600. client_id/secret from your Google Cloud OAuth client (Desktop app). ha_token: HA Profile -> Security -> Long-Lived Access Tokens. Never commit the real file.",
+  "client_id": "REPLACE.apps.googleusercontent.com",
+  "client_secret": "REPLACE",
+  "ha_url": "http://192.168.86.109:8123",
+  "ha_token": "REPLACE_WITH_HA_LONG_LIVED_TOKEN",
+  "frame_album": "Frame",
+  "max_photos": 200,
+  "photo_width": 1280
+}

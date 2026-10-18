@@ -1,6 +1,7 @@
 /* Chores: per-person columns from HA to-do lists. */
 .chores-wrap { height: 100%; padding: var(--pad); display: flex; flex-direction: column; gap: var(--gap); }
-.ch-grid { flex: 1; display: grid; grid-template-columns: repeat(6, 1fr); gap: var(--gap); }
+.ch-grid { flex: 1; display: grid; grid-template-columns: repeat(6, 1fr); gap: var(--gap); min-height: 0; }
+.has-family .ch-grid { grid-template-columns: repeat(7, 1fr); }
 .ch-col { border-radius: var(--r); border: 2px solid var(--line); background: var(--card); padding: 14px; display: flex; flex-direction: column; gap: 10px; overflow: hidden; }
 .ch-head { display: flex; align-items: center; gap: 10px; }
 .ch-head b { font-size: var(--fs-body); }
@@ -16,3 +17,5 @@
 .ch-free { font-size: var(--fs-body); color: var(--mute); padding: 8px; }
 .ch-missing { font-size: var(--fs-min); color: var(--ink-2); line-height: 1.5; }
 .ch-note { font-size: var(--fs-min); color: var(--mute); font-weight: 700; letter-spacing: .04em; }
+.ch-note--warn { color: var(--ink); background: rgba(var(--amber-rgb), .18); border-radius: var(--r-s); padding: 10px 14px; line-height: 1.5; }
+.ch-note .num { color: var(--ink); }

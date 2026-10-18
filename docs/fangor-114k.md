@@ -235,6 +235,44 @@ flag serves the loopback HTTP origin.
 - Final state: `ha: live`, kiosk focused, all 10 tabs rendering live data. Remaining owner
   checklist items: chores to-do helpers, Google Calendar, CalDAV, Photos sync pipeline.
 
+## Session 7 (2026-10-18): challenger review applied - calendar, mail, chores, photos
+
+- **Challenger review of the four-workstream plan** found two criticals (both verified before
+  trusting them): (C1) HA's `google_mail` integration CANNOT provide unread mail - it only has
+  a vacation sensor + set_vacation + notify (verified against HA source + docs; the "INBOX
+  label" instruction was wrong - that's a HACS custom component's feature). (C2) email metadata
+  must never touch `/local/` (unauthenticated LAN-readable) - the manifest fallback is dead.
+  Also corrected an earlier misdiagnosis: `todo.update_item`/`remove_item` take a single `item`
+  field that accepts **uid OR summary** (the `item_uid` key 400s; uid-in-`item` verified 200
+  on-frame). Mutations are now uid-keyed (duplicate-safe).
+- **Calendar** (done): all four calendars wired with colours; Calendar tab renders 31 events
+  (irrigation + family, incl. multi-day all-day); Today gained a Family card whose event row
+  shows the next strip-calendar event (irrigation suppressed from the strip; ongoing multi-day
+  events included).
+- **Boot-race + two UI bugs found on-frame**: Today's event fetch ran before /ha.json resolved
+  and cached empty; the data-event repaint path didn't refetch (row stuck on "Loading\u2026");
+  nested `<button>` inside the Family card button made the parser eject the second row. All
+  fixed: fetch guard on `HA.url`, refetch on data/ha-status, honest Loading state, div wrapper.
+  Verified: cold boot shows "Connor and Marcus with Ian - Friday" within 20 s.
+- **Mail** (architecture change per review): Mac-side Gmail fetch in
+  `scripts/frame-google-sync/sync.mjs` -> `POST /api/states/sensor.frame_mail_unread`
+  (authenticated; the frame reads it over its existing WS subscription). The Today Family card
+  shows unread count + deduped senders; tap opens a sheet with sender/subject/date for all
+  unread. Nothing email-related ever goes to `/local/`.
+- **Photos** (per review): same sync script pulls shared albums + a curated "Frame" album into
+  `www/frame-photos/` with a JS manifest; per-URL `?v=` cache-busters (review m4), pagination,
+  mediaItemId dedupe, Perth dates, video skip, album-title collision check, rotation cap,
+  needs_reauth flag into manifest + sensor. launchd installer included. OAuth ops decision
+  (Testing = 7-day tokens vs Publish) is documented as an explicit user choice.
+- **Chores** (per review): definitions now live in the `Chore Definitions` to-do list
+  (`Who | Chore | Day [| stars]`, tick = pause, delete = remove, parse errors shown on the
+  frame); once-daily `remove_completed_items` cleanup makes summary-keyed rows unambiguous;
+  uid-keyed ticks. Reconcile engine + parse error display built; waiting on the 8 helpers.
+- Remaining owner actions (docs/frame-dashboard.md checklist): 8 to-do helpers + allowlist,
+  Google Cloud OAuth setup + HA token for the sync script, Testing-vs-Publish decision,
+  optionally a "Frame" album. The HA-native `google_photos` integration is unused by the
+  frame (it cannot serve photos to it); our own OAuth client is the data path.
+
 ## Open questions
 
 - Why did the frame drop off USB mid-session? (FOTA reboot suspected but unverified - check uptime and Frameo version when it returns.)

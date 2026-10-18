@@ -194,13 +194,26 @@
 
     // -------------------------------------------------------------- family views
     calendar: {
-      // Calendar entities to render. calendar.opensprinkler_schedule exists today;
-      // Google Calendar entries appear here once the 2lawlerst@gmail.com
-      // integration is configured in HA.
+      // calendar.opensprinkler_schedule is real data but deliberately excluded
+      // from the Today "next up" strip (watering already has its own card).
+      // All four calendars render on the Calendar tab.
       entities: [
-        { id: 'calendar.opensprinkler_schedule', name: 'Irrigation', color: '#2D5BFF' }
+        { id: 'calendar.2lawlerst_gmail_com', name: '2lawlerst', color: '#2D5BFF', strip: true },
+        { id: 'calendar.birthdays', name: 'Birthdays', color: '#E4007C', strip: true },
+        { id: 'calendar.holidays_in_australia', name: 'Holidays', color: '#00A36C', strip: true },
+        { id: 'calendar.opensprinkler_schedule', name: 'Irrigation', color: '#7A756B', strip: false }
       ],
       days: 14
+    },
+
+    // Unread mail is written by the Mac-side Google sync script
+    // (scripts/frame-google-sync/) via POST /api/states with an HA long-lived
+    // token. State = unread count; attributes.messages = [{from, subject,
+    // date}]. Never write email metadata to www/ (/local/ is unauthenticated).
+    mail: {
+      sensor: 'sensor.frame_mail_unread',
+      maxSenders: 3,
+      hourly: 'Synced hourly from Gmail; the count and sender list update on the next sync.'
     },
 
     lists: {
@@ -213,13 +226,14 @@
     },
 
     chores: {
-      // Recurring chore definitions per person. day: 'daily' | weekday numbers
-      // 0=Sun..6=Sat. Recurrence is reconciled client-side into each person's
-      // HA to-do list (todo.chores_*). Starts EMPTY on purpose: chore content
-      // is a family decision, not ours to invent. Add entries like:
-      //   { who: 'kyle', title: 'Make bed', stars: 1, day: 'daily' }
-      //   { who: 'himack', title: 'Bins out', stars: 2, day: 4 }   // Thu
-      recurrences: [],
+      // Recurring chore definitions live in the HA to-do list below (editable
+      // from any phone via the HA app). Each item is plain text:
+      //   Kyle | Make bed | daily
+      //   HIMACK | Bins out | Thu | 1        (4th segment = stars, optional)
+      // Rules: day is 'daily' | 'weekday' | 'weekend' | 0-6 (Sun=0) | day name.
+      // Ticking a definition pauses it; deleting the item removes the rule.
+      // Parse errors are shown on the Chores view.
+      definitionsEntity: 'todo.chore_definitions',
       familyTodo: 'todo.chores_himack', // create alongside the person lists
       weekStarts: 1 // Monday
     },
@@ -258,6 +272,9 @@
       c.batteries.forEach(function (x) { add(x.id); });
       this.calendar.entities.forEach(function (e) { add(e.id); });
       this.lists.lists.forEach(function (l) { add(l.id); });
+      add(this.mail.sensor);
+      add(this.chores.definitionsEntity);
+      add(this.chores.familyTodo);
       PEOPLE.forEach(function (p) { add(p.person); add(p.todo); });
       return ids;
     }

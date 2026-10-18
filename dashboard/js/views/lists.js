@@ -44,10 +44,12 @@
     var open = items.filter(function (it) { return it.status !== 'completed'; });
     var done = items.filter(function (it) { return it.status === 'completed'; });
     function row(it, isDone) {
+      // HA's `item` accepts the uid (exact, duplicate-safe) or the summary.
+      var key = it.uid || it.summary;
       return '<div class="li-item' + (isDone ? ' is-done' : '') + '">' +
-        '<button class="li-check" data-toggle="' + App.esc(l.id) + '" data-item="' + App.esc(it.summary) + '" data-status="' + App.esc(it.status) + '">' + App.icon('check', 20) + '</button>' +
+        '<button class="li-check" data-toggle="' + App.esc(l.id) + '" data-key="' + App.esc(key) + '" data-status="' + App.esc(it.status) + '">' + App.icon('check', 20) + '</button>' +
         '<span class="li-name">' + App.esc(it.summary) + '</span>' +
-        '<button class="li-x" data-remove="' + App.esc(l.id) + '" data-item="' + App.esc(it.summary) + '" aria-label="Remove">' + App.icon('x', 16) + '</button>' +
+        '<button class="li-x" data-remove="' + App.esc(l.id) + '" data-key="' + App.esc(key) + '" aria-label="Remove">' + App.icon('x', 16) + '</button>' +
         '</div>';
     }
     return '<div class="li-rows">' +
@@ -73,14 +75,14 @@
       var tg = e.target.closest('[data-toggle]');
       if (tg) {
         var to = tg.dataset.status === 'completed' ? 'needs_action' : 'completed';
-        HA.callService('todo.update_item', { entity_id: tg.dataset.toggle, item: tg.dataset.item, status: to })
+        HA.callService('todo.update_item', { entity_id: tg.dataset.toggle, item: tg.dataset.key, status: to })
           .then(function () { HA.invalidateTodo(tg.dataset.toggle); return refresh(); })
           .catch(function () { App.toast('Couldn\u2019t update the list', { tone: 'error', icon: 'bolt' }); });
         return;
       }
       var rm = e.target.closest('[data-remove]');
       if (rm) {
-        HA.callService('todo.remove_item', { entity_id: rm.dataset.remove, item: rm.dataset.item })
+        HA.callService('todo.remove_item', { entity_id: rm.dataset.remove, item: rm.dataset.key })
           .then(function () { HA.invalidateTodo(rm.dataset.remove); return refresh(); })
           .catch(function () { App.toast('Couldn\u2019t remove the item', { tone: 'error', icon: 'bolt' }); });
       }

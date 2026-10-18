@@ -48,6 +48,11 @@ Security model:
 
 Each step has an undo. Do them in this order.
 
+0. **Allowlist the family entities for the `frame-dashboard` limited user**
+   `calendar.2lawlerst_gmail_com`, `calendar.birthdays`, `calendar.holidays_in_australia`,
+   `sensor.frame_mail_unread`, and the eight to-do lists below.
+   *Undo:* remove the allowlist entries.
+
 1. **Limited HA user + token**
    HA UI: Settings -> People -> Add Person: name `Frame Dashboard`, user type **Limited user**.
    In the user's permissions, allow devices/areas so you can tick the allowlist; the entities to
@@ -64,9 +69,11 @@ Each step has an undo. Do them in this order.
 3. **Chores to-do helpers** (MCP cannot create these; UI only)
    Settings -> Devices & Services -> Helpers -> Create Helper -> **Local to-do list**, once per
    name: `Chores Ian`, `Chores Helen`, `Chores Marcus`, `Chores Alexa`, `Chores Connor`,
-   `Chores Kyle`, and optionally `Chores HIMACK` (group items). Entity IDs land as
-   `todo.chores_ian` ... `todo.chores_himack` - keep exactly those slugs (the config depends on
-   them). Then define recurring chores in `dashboard/js/ha-config.js` -> `chores.recurrences`.
+   `Chores Kyle`, `Chores HIMACK` (shared chores), and **`Chore Definitions`**. Entity IDs land
+   as `todo.chores_ian` ... `todo.chores_himack` and `todo.chore_definitions` - keep exactly
+   those slugs. Then define chores from any phone: `Who | Chore | Day [| stars]`, e.g.
+   `Kyle | Make bed | daily` or `HIMACK | Bins out | Thu | 1`. Tick a definition to pause it;
+   delete it to remove the rule; malformed rows show on the Chores view.
    *Undo:* delete each helper.
 3a. **Allow the frame origin for CORS (required for REST calls)**
    Since HA 2026.8 the `http:` block is UI/storage-managed; YAML is migrated once and then
@@ -78,26 +85,28 @@ Each step has an undo. Do them in this order.
    (service calls, camera stills, calendar, wine) fails at the CORS preflight with 403.
    Symptom on the frame: `net::ERR_FAILED` on /api/* fetches in the DevTools probe.
    *Undo:* remove the origin in the same UI.
-4. **Google Calendar (2lawlerst@gmail.com)**
-   HA UI: Settings -> Devices & Services -> Add Integration -> Google Calendar; authorize the
-   account. Add each calendar entity ID you want on the frame to
-   `ha-config.js` -> `calendar.entities` (name + colour). Note: HA exposes no attendee data,
-   so per-person event colouring needs a title convention if you want it.
-   *Undo:* remove the integration; remove the entries from ha-config.js.
+4. **Google Calendar** (configured 2026-10-18: integration live, all four entities wired)
+   If you add more calendars later, add their entity IDs + colours to `ha-config.js` ->
+   `calendar.entities` (`strip: false` keeps one off the Today next-event card). No attendee
+   data exists, so per-person colouring needs a title convention.
+   *Undo:* remove entries from ha-config.js.
 5. **Apple Reminders shared lists**
    Settings -> Devices & Services -> Add Integration -> CalDAV; host the iCloud CalDAV endpoint
    with an app-specific password, enable to-do (VTODO) support. Shared Reminders lists shared
    with that account appear as `todo.*` entities. Add them to `ha-config.js` -> `lists.lists`
    (Shopping first). Verify which account hosts the shared lists before generating the password.
    *Undo:* remove the integration; entries in ha-config.js.
-6. **Google Photos sync pipeline** (recommended: curated album "Frame")
-   OAuth credentials with read-only Photos scope live on the sync host (Mac or server111),
-   never in the repo and never on the frame. The sync downloads the album into the HA config
-   share at `www/frame-photos/` (use the existing `~/mount-ha-config` mount) and writes
-   `frame-photos.js`: `window.FRAME_PHOTOS = { photos: [{ url, date, place, from, w, h }] }`
-   (url relative to `/local/frame-photos/`; the dashboard prefixes the HA base).
-   Run it hourly-ish (launchd or cron). Cache-busting is automatic (`?v=Date.now()`).
-   *Undo:* stop the job, delete `www/frame-photos/`.
+6. **Mail + Photos sync pipeline** (`scripts/frame-google-sync/`)
+   The HA `google_mail` integration CANNOT provide unread mail (it only offers a vacation
+   sensor and a send-email action - verified against HA source + docs). Mail and photos both
+   come from the Mac sync script instead: see `scripts/frame-google-sync/README.md` for the
+   Google Cloud + OAuth steps and the Testing-vs-Publish ops decision (Testing-mode refresh
+   tokens die after 7 days; the frame shows a needs-reauth state). Mail lands in the
+   authenticated `sensor.frame_mail_unread` via `POST /api/states` (never on `/local/`,
+   which is unauthenticated); photos land in `www/frame-photos/` with per-URL `?v=`
+   cache-busters. The curated album is titled "Frame"; shared albums flow automatically.
+   *Undo:* unload the launchd job, delete `~/.config/frame-google-sync/` and
+   `www/frame-photos/`, revoke the HA token and the Google client.
 
 ## Entity map / allowlist mirror
 
@@ -185,10 +194,13 @@ node scripts/frame-devtools.mjs          # reload + capture console/network/stat
    `configuration.yaml.bak-20261017-frame-cors`; the repair issue clears on the next boot.
 8. **HA 2026.10 todo API specifics**: items are not exposed in entity attributes; fetch them
    with `POST /api/services/todo/get_items?return_response` and pass
-   `status: ["needs_action","completed"]` (the default is needs_action only). `update_item` and
-   `remove_item` identify items by `item` (the summary TEXT, required) - there is no
-   `item_uid` in this version's service schema and sending one 400s. `js/ha.js` (`HA.todoItems`)
-   is the single place these shapes live.
+   `status: ["needs_action","completed"]` (the default is needs_action only). Mutations
+   (`update_item`, `remove_item`) identify rows through the single `item` field, which accepts
+   **either the uid (exact, duplicate-safe) or the summary text**. A separate `item_uid` key is
+   NOT in this version's schema and 400s - that is what the original misdiagnosis saw. Always
+   pass the uid when you have it; the frame does. To keep summaries unique across days, the
+   Chores view clears completed items once a day (`todo.remove_completed_items`).
+   `js/ha.js` (`HA.todoItems`) is the single place these shapes live.
 9. **Response-returning services via REST** need `?return_response` on the URL (the plain
    endpoint 400s with "caller did not ask for responses" - the error text tells you).
 10. **Cork Dork bare-endpoint 400 (fixed 2026-10-18)**: `http_api.py` always passed

@@ -8,6 +8,7 @@
 
   function load() {
     if (V.cache && Date.now() - V.at < 10 * 60000) return Promise.resolve(V.cache);
+    if (!HA.url) { V.cache = null; V.at = 0; return Promise.resolve([]); } // boot race, retry next show
     var start = new Date(App.now()); start.setHours(0, 0, 0, 0);
     var end = App.addDays(start, C.calendar.days);
     return Promise.all(C.calendar.entities.map(function (cal) {
@@ -27,7 +28,8 @@
       var flat = [];
       all.forEach(function (l) { flat = flat.concat(l); });
       flat.sort(function (a, b) { return (a.start || 0) - (b.start || 0); });
-      V.cache = flat; V.at = Date.now();
+      V.cache = flat;
+      V.at = Date.now() - (flat.length ? 0 : 9 * 60000); // empty results cache 60s only
       return flat;
     });
   }

@@ -1,0 +1,278 @@
+#!/usr/bin/env node
+// frame-google-sync: pulls 2lawlerst@gmail.com data onto the frame display.
+//
+//   node sync.mjs authorize   one-time OAuth (opens a browser, needs you)
+//   node sync.mjs sync        fetch unread Gmail + photos, push to HA
+//   node sync.mjs status      show what the last sync wrote
+//
+// Data paths (security model, see docs/frame-dashboard.md):
+//   Mail   -> POST /api/states/sensor.frame_mail_unread on HA (authenticated;
+//             the frame reads it over its existing WebSocket subscription).
+//             NEVER write email metadata to www/ (/local/ is unauthenticated).
+//   Photos -> ~/ha-config/www/frame-photos/ (HA /local/, SMB mount) plus a
+//             JS manifest the frame loads via cross-origin <script>. Family
+//             photos on /local/ is accepted (they are on display anyway);
+//             every URL carries a ?v= cache-buster because /local/ caches hard.
+//
+// Config: ~/.config/frame-google-sync/config.json (chmod 600, gitignored by
+// design - never inside this repo):
+//   {
+//     "client_id": "...", "client_secret": "...",
+//     "ha_url": "http://192.168.86.109:8123", "ha_token": "<long-lived HA token>",
+//     "frame_album": "Frame", "max_photos": 200, "photo_width": 1280
+//   }
+// Tokens: ~/.config/frame-google-sync/tokens.json (refresh token, 600).
+// State:  ~/.config/frame-google-sync/state.json (synced media item ids/files).
+//
+// OAuth ops warning (deliberate, from the HA Google integration docs):
+// if the Google Cloud consent screen stays in "Testing", refresh tokens DIE
+// AFTER 7 DAYS and you must re-run `authorize`. Publishing the app avoids it.
+// On auth failure the script flags needs_reauth in the HA sensor + manifest so
+// the frame shows it. Decide the ops model once and document it.
+
+import { access, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
+import { createServer } from 'node:http';
+import { execFileSync } from 'node:child_process';
+import { homedir, tmpdir } from 'node:os';
+import path from 'node:path';
+
+const DIR = path.join(homedir(), '.config', 'frame-google-sync');
+const CONFIG = path.join(DIR, 'config.json');
+const TOKENS = path.join(DIR, 'tokens.json');
+const STATE = path.join(DIR, 'state.json');
+const WWW_PHOTOS = path.join(homedir(), 'ha-config', 'www', 'frame-photos');
+const MANIFEST = path.join(WWW_PHOTOS, 'frame-photos.js');
+const MAIL_SENSOR = 'sensor.frame_mail_unread';
+const SCOPES = ['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/photoslibrary.readonly'];
+const REDIRECT_PORT = 8399;
+
+async function readJson(p) { try { return JSON.parse(await readFile(p, 'utf8')); } catch { return null; } }
+async function writeJson(p, obj) { await mkdir(path.dirname(p), { recursive: true }); await writeFile(p, JSON.stringify(obj, null, 2), { mode: 0o600 }); }
+
+function fail(msg) { console.error('frame-google-sync: ' + msg); process.exit(1); }
+
+async function main() {
+  const cmd = process.argv[2] || 'sync';
+  const cfg = await readJson(CONFIG);
+  if (cmd !== 'status' && !cfg) fail('missing ' + CONFIG + ' (see config.example.json in this directory)');
+
+  if (cmd === 'authorize') return authorize(cfg);
+  if (cmd === 'status') return status();
+  if (cmd === 'sync') return sync(cfg);
+  fail('unknown command: ' + cmd);
+}
+
+// ---------------------------------------------------------------- google auth
+async function accessToken(cfg, tokens) {
+  const now = Date.now();
+  if (tokens && tokens.access_token && tokens.expires_at > now + 60000) return tokens.access_token;
+  if (!tokens || !tokens.refresh_token) return null;
+  const r = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: cfg.client_id, client_secret: cfg.client_secret,
+      refresh_token: tokens.refresh_token, grant_type: 'refresh_token'
+    })
+  });
+  if (r.status === 400 || r.status === 401) return { dead: true }; // invalid_grant etc.
+  if (!r.ok) fail('token refresh HTTP ' + r.status);
+  const j = await r.json();
+  tokens.access_token = j.access_token;
+  tokens.expires_at = now + (j.expires_in || 3600) * 1000;
+  await writeJson(TOKENS, tokens);
+  return tokens.access_token;
+}
+
+async function authorize(cfg) {
+  const redirect = `http://localhost:${REDIRECT_PORT}/`;
+  const url = 'https://accounts.google.com/o/oauth2/v2/auth?' + new URLSearchParams({
+    client_id: cfg.client_id, redirect_uri: redirect, response_type: 'code',
+    access_type: 'offline', prompt: 'consent',
+    scope: SCOPES.join(' '),
+    login_hint: '2lawlerst@gmail.com'
+  });
+  const code = await new Promise((resolve, reject) => {
+    const srv = createServer((req, res) => {
+      const q = new URL(req.url, redirect).searchParams;
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      if (q.get('code')) { res.end('Authorized. You can close this tab and go back to the terminal.'); srv.close(() => resolve(q.get('code'))); }
+      else { res.end('No code received.'); srv.close(() => reject(new Error('no code'))); }
+    });
+    srv.listen(REDIRECT_PORT, '127.0.0.1', () => {
+      console.log('Open this in a browser and sign in as 2lawlerst@gmail.com:\n\n' + url + '\n');
+    });
+    setTimeout(() => reject(new Error('authorize timeout (10 min)')), 600000);
+  });
+  const r = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: cfg.client_id, client_secret: cfg.client_secret,
+      code, grant_type: 'authorization_code', redirect_uri: redirect
+    })
+  });
+  if (!r.ok) fail('code exchange HTTP ' + r.status + ' ' + (await r.text()));
+  const j = await r.json();
+  if (!j.refresh_token) fail('Google returned no refresh_token (re-run authorize; consent screen may need prompt=consent).');
+  await writeJson(TOKENS, { refresh_token: j.refresh_token, access_token: j.access_token, expires_at: Date.now() + (j.expires_in || 3600) * 1000 });
+  console.log('Refresh token stored in ' + TOKENS);
+}
+
+// ---------------------------------------------------------------- gmail
+async function gmailUnread(tok) {
+  const h = { Authorization: 'Bearer ' + tok };
+  const r = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=100&q=' + encodeURIComponent('is:unread in:inbox'), { headers: h });
+  if (!r.ok) fail('gmail list HTTP ' + r.status + ' ' + (await r.text()).slice(0, 200));
+  const j = await r.json();
+  const ids = (j.messages || []).map(m => m.id);
+  const out = [];
+  for (const id of ids) {
+    const m = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/' + id + '?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date', { headers: h });
+    if (!m.ok) continue; // individual failure: skip, next sync retries
+    const d = await m.json();
+    const get = k => { const x = (d.payload && d.payload.headers || []).find(v => v.name.toLowerCase() === k); return x ? x.value : ''; };
+    out.push({ from: get('from'), subject: get('subject'), date: get('date') });
+  }
+  return out;
+}
+
+async function pushMail(cfg, messages, needsReauth) {
+  if (!cfg.ha_url || !cfg.ha_token) { console.error('mail: skipped (no ha_url/ha_token in config)'); return false; }
+  const body = {
+    state: needsReauth ? '0' : String(messages.length),
+    attributes: {
+      friendly_name: 'Frame Mail Unread',
+      icon: 'mdi:email-alert',
+      messages: needsReauth ? [] : messages,
+      needs_reauth: needsReauth || false,
+      updated_at: new Date().toISOString()
+    }
+  };
+  const r = await fetch(cfg.ha_url.replace(/\/$/, '') + '/api/states/' + MAIL_SENSOR, {
+    method: 'POST', headers: { Authorization: 'Bearer ' + cfg.ha_token, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) { console.error('mail: HA POST HTTP ' + r.status + ' ' + (await r.text()).slice(0, 200)); return false; }
+  console.log('mail: ' + (needsReauth ? 'needs_reauth flag set' : messages.length + ' unread pushed to ' + MAIL_SENSOR));
+  return true;
+}
+
+// ---------------------------------------------------------------- photos
+async function g(tok, url) {
+  const r = await fetch(url, { headers: { Authorization: 'Bearer ' + tok } });
+  if (!r.ok) fail('photos HTTP ' + r.status + ' ' + (await r.text()).slice(0, 200) + ' @ ' + url.slice(0, 80));
+  return r.json();
+}
+async function listAlbums(tok, which, listUrl) {
+  const albums = [];
+  let pageToken = '';
+  do {
+    const j = await g(tok, 'https://photoslibrary.googleapis.com/v1/' + listUrl + '?pageSize=50' + (pageToken ? '&pageToken=' + pageToken : ''));
+    (j[which] || []).forEach(a => albums.push(a));
+    pageToken = j.nextPageToken || '';
+  } while (pageToken);
+  return albums;
+}
+async function albumMedia(tok, albumId) {
+  const items = [];
+  let pageToken = '';
+  // mediaItems:search is a POST; follow nextPageToken to exhaustion.
+  for (;;) {
+    const r = await fetch('https://photoslibrary.googleapis.com/v1/mediaItems:search', {
+      method: 'POST', headers: { Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ albumId, pageSize: 100, pageToken })
+    });
+    if (!r.ok) fail('mediaItems:search HTTP ' + r.status);
+    const j = await r.json();
+    (j.mediaItems || []).forEach(i => items.push(i));
+    if (!j.nextPageToken) break;
+    pageToken = j.nextPageToken;
+  }
+  return items;
+}
+function perthDate(creationTime) {
+  // creationTime is RFC3339 UTC; the frame shows Perth dates.
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Perth', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(creationTime));
+}
+async function syncPhotos(cfg, tok, needsReauth) {
+  await mkdir(WWW_PHOTOS, { recursive: true });
+  const state = (await readJson(STATE)) || { synced: {} };   // mediaItemId -> {file, date, place}
+  if (needsReauth) {
+    // Keep the last good manifest but flag it so the frame shows the reason.
+    if (await exists(MANIFEST)) {
+      const src = await readFile(MANIFEST, 'utf8');
+      await writeFile(MANIFEST, src.replace(/\);?\s*$/, '').replace('window.FRAME_PHOTOS = ', 'window.FRAME_PHOTOS_REAUTH = ') + '\nwindow.FRAME_PHOTOS = Object.assign({}, window.FRAME_PHOTOS_REAUTH, { needs_reauth: true });');
+    }
+    console.error('photos: needs reauth; last manifest kept with needs_reauth flag');
+    return;
+  }
+  const shared = await listAlbums(tok, 'sharedAlbums', 'sharedAlbums');
+  const mine = await listAlbums(tok, 'albums', 'albums');
+  const frameTitle = cfg.frame_album || 'Frame';
+  const curated = mine.filter(a => a.title === frameTitle);
+  if (mine.filter(a => a.title === frameTitle).length > 1) fail('multiple albums titled "' + frameTitle + '" - rename one (title collisions are ambiguous)');
+  const albums = shared.map(a => ({ id: a.id, title: a.title || 'Shared', place: a.title || 'Shared' }))
+    .concat(curated.map(a => ({ id: a.id, title: a.title, place: 'Frame' })));
+  console.log('photos: ' + albums.length + ' album(s) (' + shared.length + ' shared' + (curated.length ? ', curated "' + frameTitle + '"' : ', no curated album yet') + ')');
+  let kept = 0;
+  for (const al of albums) {
+    const media = await albumMedia(tok, al.id);
+    for (const it of media) {
+      if ((it.mimeType || '').startsWith('video/')) continue; // v1: no videos
+      if (state.synced[it.id]) { kept++; continue; }
+      const dl = await fetch(it.baseUrl + '=w' + (cfg.photo_width || 1280) + '-c', { headers: { Authorization: 'Bearer ' + tok } });
+      if (!dl.ok) continue;
+      const buf = Buffer.from(await dl.arrayBuffer());
+      const tmp = path.join(tmpdir(), 'fgs-' + it.id + '.jpg');
+      await writeFile(tmp, buf);
+      const file = it.id + '.jpg';
+      await writeFile(path.join(WWW_PHOTOS, file), buf);
+      // normalize to JPEG even if Google handed back HEIC
+      try { execFileSync('sips', ['-s', 'format', 'jpeg', path.join(WWW_PHOTOS, file), '--out', path.join(WWW_PHOTOS, file)], { stdio: 'ignore' }); } catch { }
+      await rm(tmp, { force: true });
+      state.synced[it.id] = { file, date: perthDate(it.mediaMetadata && it.mediaMetadata.creationTime || Date.now()), place: al.place };
+      kept++;
+    }
+  }
+  // rotation cap: newest N by date string, oldest get deleted from disk + state
+  const entries = Object.entries(state.synced);
+  if (entries.length > (cfg.max_photos || 200)) {
+    entries.sort((a, b) => (a[1].date < b[1].date ? -1 : 1));
+    const drop = entries.slice(0, entries.length - (cfg.max_photos || 200));
+    for (const [id, rec] of drop) {
+      await rm(path.join(WWW_PHOTOS, rec.file), { force: true });
+      delete state.synced[id];
+    }
+  }
+  await writeJson(STATE, state);
+  const v = Date.now();
+  const photos = Object.values(state.synced).map(rec => ({ url: '/local/frame-photos/' + rec.file + '?v=' + v, date: rec.date, place: rec.place }));
+  await writeFile(MANIFEST, 'window.FRAME_PHOTOS = ' + JSON.stringify({ photos, updated_at: new Date().toISOString() }) + ';\n');
+  console.log('photos: ' + photos.length + ' in manifest (' + WWW_PHOTOS + ')');
+}
+async function exists(p) { try { await stat(p); return true; } catch { return false; } }
+
+// ---------------------------------------------------------------- driver
+async function sync(cfg) {
+  const tokens = await readJson(TOKENS);
+  const tok = await accessToken(cfg, tokens || {});
+  const needsReauth = tok === null || (tok && tok.dead);
+  if (needsReauth) {
+    console.error('Google auth: refresh token missing or expired. Re-run: node sync.mjs authorize');
+    console.error('(If the consent screen is in Testing mode, tokens die after 7 days - publish the app or re-authorize weekly.)');
+  }
+  let mail = [];
+  if (!needsReauth) mail = await gmailUnread(tok);
+  await pushMail(cfg, mail, needsReauth);
+  await syncPhotos(cfg, tok || '', needsReauth);
+}
+
+async function status() {
+  const tokens = await readJson(TOKENS);
+  const state = await readJson(STATE);
+  const files = await readdir(WWW_PHOTOS).catch(() => []);
+  console.log('tokens: ' + (tokens ? 'present (access expires ' + (tokens.expires_at ? new Date(tokens.expires_at).toISOString() : '?') + ')' : 'NONE - run authorize'));
+  console.log('photos tracked: ' + (state ? Object.keys(state.synced).length : 0) + ', files in www/frame-photos: ' + files.length);
+  console.log('manifest: ' + (await exists(MANIFEST) ? 'present' : 'missing'));
+}
+
+main().catch(e => { console.error(e && e.stack || e); process.exit(1); });
