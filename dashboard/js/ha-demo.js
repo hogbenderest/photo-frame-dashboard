@@ -94,6 +94,16 @@
   var soils = [['sensor.letterbox_soil_moisture', 36.7, 'Letterbox Lawn'], ['sensor.driveway_soil_moisture', 28.9, 'Driveway Lawn'], ['sensor.back_garden_soil_moisture_soil_moisture', 77.7, 'Back Garden'], ['sensor.patio_tomato_plant_soil_moisture', 80.4, 'Patio Tomato'], ['sensor.balcony_bay_leaf_soil_moisture_soil_moisture', 12.7, 'Balcony Bay Leaf'], ['sensor.palm_pot_plant_soil_moisture_soil_moisture', 62.3, 'Palm Pot'], ['sensor.third_reality_inc_3rsm0347z_soil_moisture', 91.4, 'Plant Meter 1'], ['sensor.landing_balcony_plants_soil_moisture', 68.9, 'Plant Meter 2'], ['sensor.temporary_device_2_soil_moisture', 86.4, 'Plant Meter 3']];
   soils.forEach(function (s) { S(st(s[0], String(s[1]), { unit_of_measurement: '%', friendly_name: s[2] })); });
 
+  // aircon (demo states mirror the live AirTouch shapes)
+  S(st('input_number.aircon_whole_house_target', '21.0', { min: 16, max: 30, step: 1, friendly_name: 'Aircon Whole House Target' }));
+  S(st('climate.ac_0', 'off', { hvac_modes: ['off', 'auto', 'cool', 'dry', 'fan_only', 'heat'], fan_modes: ['low', 'medium', 'high', 'auto'], current_temperature: 27, temperature: 23, fan_mode: 'low', friendly_name: 'Main Unit' }));
+  S(st('climate.ac_1', 'off', { hvac_modes: ['off', 'auto', 'cool', 'dry', 'fan_only', 'heat'], fan_modes: ['low', 'medium', 'high', 'auto'], current_temperature: 26, temperature: 22, fan_mode: 'auto', friendly_name: 'Downstairs' }));
+  [['helen_ian', 22.5, 21, 50], ['connor', 23, 21, 40], ['dining', 24, 22, 60], ['kitchen', 25, 22, 55], ['study', 23.5, 21, 45], ['upstairs', 26, 22, 35],
+   ['alexa', 24, 21, 50], ['kyle', 23.5, 20, 40], ['marcus', 23, 21, 45], ['theatre', 24.5, 22, 30]].forEach(function (z) {
+    S(st('climate.' + z[0], 'fan_only', { current_temperature: z[1], temperature: z[2], min_temp: 16, max_temp: 32, hvac_modes: ['off', 'fan_only'], preset_modes: ['none', 'boost'], preset_mode: 'none', friendly_name: z[0] }));
+    S(st('cover.' + z[0] + '_damper', 'open', { current_position: z[3], device_class: 'damper', friendly_name: z[0] + ' damper' }));
+  });
+
   // cellar
   S(st('sensor.cork_dork_total_bottles', '141', { friendly_name: 'Cork Dork Total Bottles' }));
   S(st('sensor.cork_dork_capacity', '97.9', { unit_of_measurement: '%', friendly_name: 'Cork Dork Capacity' }));

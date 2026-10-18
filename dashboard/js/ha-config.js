@@ -204,6 +204,31 @@
       ]
     },
 
+    // -------------------------------------------------------------- aircon
+    // Mirrors the HA "Aircon" dashboard (lovelace.dashboard_aircon):
+    // two AirTouch units, 10 zone climates + 10 dampers, whole-house target.
+    // Setting wholeHouse only sets the helper - the user's
+    // "Aircon Whole House Target Apply" automation fans it out (1 setpoint/sec).
+    aircon: {
+      wholeHouse: 'input_number.aircon_whole_house_target',
+      units: [
+        { id: 'climate.ac_0', name: 'Main', zones: ['helen_ian', 'connor', 'dining', 'kitchen', 'study', 'upstairs'] },
+        { id: 'climate.ac_1', name: 'Downstairs', zones: ['alexa', 'kyle', 'marcus', 'theatre'] }
+      ],
+      zones: {
+        helen_ian: { name: 'Helen + Ian', climate: 'climate.helen_ian', damper: 'cover.helen_ian_damper' },
+        connor:    { name: 'Connor',      climate: 'climate.connor',    damper: 'cover.connor_damper' },
+        dining:    { name: 'Dining',      climate: 'climate.dining',    damper: 'cover.dining_damper' },
+        kitchen:   { name: 'Kitchen',     climate: 'climate.kitchen',   damper: 'cover.kitchen_damper' },
+        study:     { name: 'Study',       climate: 'climate.study',     damper: 'cover.study_damper' },
+        upstairs:  { name: 'Upstairs',    climate: 'climate.upstairs',  damper: 'cover.upstairs_damper' },
+        alexa:     { name: 'Alexa',       climate: 'climate.alexa',     damper: 'cover.alexa_damper' },
+        kyle:      { name: 'Kyle',        climate: 'climate.kyle',      damper: 'cover.kyle_damper' },
+        marcus:    { name: 'Marcus',      climate: 'climate.marcus',    damper: 'cover.marcus_damper' },
+        theatre:   { name: 'Theatre',    climate: 'climate.theatre',   damper: 'cover.theatre_damper' }
+      }
+    },
+
     // -------------------------------------------------------------- family views
     calendar: {
       // calendar.opensprinkler_schedule is real data but deliberately excluded
@@ -282,6 +307,13 @@
       [c.bottles, c.capacity, c.door, c.light].forEach(add);
       c.shelves.forEach(function (x) { add(x.id); });
       c.batteries.forEach(function (x) { add(x.id); });
+      add(this.aircon.wholeHouse);
+      var AC = this.aircon; // captured for the closure (no `C` in this scope)
+      AC.units.forEach(function (u) { add(u.id); });
+      Object.keys(AC.zones).forEach(function (k) {
+        add(AC.zones[k].climate);
+        add(AC.zones[k].damper);
+      });
       this.calendar.entities.forEach(function (e) { add(e.id); });
       this.lists.lists.forEach(function (l) { add(l.id); });
       add(this.mail.sensor);

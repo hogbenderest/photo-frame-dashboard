@@ -18,16 +18,38 @@
   };
 
   // ------------------------------------------------------------ store helpers
+  function numToDate(x) {
+    if (typeof x === 'number' && x > 0 && x < 1e11) return new Date(x * 1000).toISOString(); // epoch seconds -> ISO
+    return x;
+  }
+  // Full state payload from get_states (entity_id, state, attributes, last_changed).
   function norm(id, o) {
-    // get_states payload
-    if (o && o.entity_id) return { state: o.state, attributes: o.attributes || {}, last_changed: o.last_changed };
-    // subscribe_entities delta payload: { s, a, lc, lu }
-    if (o && ('s' in o)) return { state: o.s, attributes: o.a || {}, last_changed: o.lc };
+    if (o && o.entity_id) return { state: o.state, attributes: o.attributes || {}, last_changed: numToDate(o.last_changed) };
     return null;
   }
   function put(id, full) {
     var n = norm(id, full);
     if (n) HA.states[id] = n; else delete HA.states[id];
+  }
+  // Compact subscribe_entities payload - PARTIAL by design: a change that only
+  // moves an attribute arrives as {"lu":..., "c":..., "a": {"temperature": 21}}
+  // with no "s" key, so it must MERGE into the stored entity, never replace it.
+  function applyCompact(id, v) {
+    var cur = HA.states[id];
+    if (!cur) cur = HA.states[id] = { state: null, attributes: {}, last_changed: null };
+    if (v.s !== undefined) cur.state = v.s;
+    if (v.lc !== undefined) cur.last_changed = numToDate(v.lc);
+    else if (v.lu !== undefined && cur.last_changed === null) cur.last_changed = numToDate(v.lu);
+    if (v.a !== undefined) {
+      var a = v.a;
+      if (a['+'] !== undefined || a['-'] !== undefined) {
+        // defensive: nested add/remove attribute form
+        if (a['+']) { for (var k in a['+']) cur.attributes[k] = a['+'][k]; }
+        if (a['-']) { (Array.isArray(a['-']) ? a['-'] : Object.keys(a['-'])).forEach(function (kk) { delete cur.attributes[kk]; }); }
+      } else {
+        for (var k2 in a) cur.attributes[k2] = a[k2]; // observed form: partial attr dict
+      }
+    }
   }
 
   HA.get = function (id) { return HA.states[id] || null; };
@@ -223,11 +245,13 @@
         watchTakeovers();
         return;
       }
-      if (m.type === 'event' && m.event && m.event.c) {
-        for (var id in m.event.c) {
-          var d = m.event.c[id];
-          if (d['+']) { put(id, d['+']); touch(id); }
-          else if (d['-']) { delete HA.states[id]; touch(id); }
+      if (m.type === 'event' && m.event && (m.event.a || m.event.c)) {
+        var changes = m.event.a || m.event.c; // "a": initial snapshot; "c": diffs
+        for (var id in changes) {
+          var d = changes[id];
+          if (!m.event.a && d['-']) { delete HA.states[id]; touch(id); continue; }
+          var val = m.event.a ? d : d['+'];
+          if (val) { applyCompact(id, val); touch(id); }
         }
       }
     };

@@ -311,6 +311,30 @@ flag serves the loopback HTTP origin.
   Session screenshots on /sdcard are pulled to backups/ then deleted (1.7 MB
   cleaned today). Disk check added to the runbook maintenance list.
 
+## Session 10 (2026-10-18): Aircon tab (11th) + a store-corrupting diff bug found by it
+
+- **Aircon tab added**, mirroring the user's new HA "Aircon" dashboard: whole-house target
+  card (sets only `input_number.aircon_whole_house_target` - the user's "Aircon Whole House
+  Target Apply" automation fans it to both units + 10 zones at 1 setpoint/sec), two unit chips
+  (mode/fan/target sheets: `climate.set_hvac_mode`/`set_fan_mode`/`set_temperature`), 10 zone
+  cards (current, target, vent %; sheet: setpoint +/-, damper 0/25/50/75/100 via
+  `cover.set_cover_position`, fan on/off). Rail now 11 items (58px rows).
+- **Verified live**: zone setpoint round-trip (helen_ian 21->22->21), damper 50->25->50,
+  whole-house 21->22 (automation applied to all 12 climates) -> restored 21 + ac_0 back to
+  its pre-test 23. All inert - both units off throughout.
+- **THE BUG (serious, latent until now)**: `subscribe_entities` diffs are PARTIAL - an
+  attribute-only change arrives as `{"+": {"lu":..., "a": {"temperature": 22}}}` with NO `s`
+  key, and the initial subscribe snapshot arrives under `event.a` (which was ignored
+  entirely). The old `norm()` treated any payload without `s`/`entity_id` as unknown and
+  **deleted the entity from the store**. Net effect: any entity whose attributes changed
+  after boot (setpoints, damper positions) vanished from the frame; my whole-house test
+  wiped all 12 climate entities at once, which exposed it. Fixed with `applyCompact()`
+  (merge partials, handle `event.a`, normalise epoch-second timestamps) - captured the real
+  diff shapes on-frame before writing the fix. This explains any earlier "values went --"
+  oddities on attribute-heavy entities.
+- Also fixed en route: an `allEntities()` closure referenced an undefined `C` inside
+  ha-config.js (threw on-boot, killing the whole state subscription until corrected).
+
 ## Session 9 (2026-10-18): retic map + cellar racks (challenger-reviewed)
 
 - **Zone-map sign-off done before shipping** (review amendment 2): polygon-to-zone mapping

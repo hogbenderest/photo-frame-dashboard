@@ -146,6 +146,7 @@ inventory and rack (47/48 slots restored).
 | Security | `input_select.home_away_mode`, `input_boolean.guest_mode`, 4 door contacts, garage cover + problem, 4 leak sensors + `binary_sensor.water_leak_detected`, 6 activity sensors, 3 sirens (read) |
 | Cameras | 7 `camera.*` + their event sensors; stills via `/api/camera_proxy` |
 | Watering | program running, next/last run, rain delay pair, paused, weather restriction, seasonal level, patio hold, heat boost timer, pump running/enabled, 7 station pairs + 2 patio valve switches, 9 soil moisture sensors |
+| Aircon | `input_number.aircon_whole_house_target`, `climate.ac_0`/`ac_1` + 10 zone climates + 10 dampers (mirrors the HA "Aircon" dashboard; whole-house only sets the helper - the user's automation fans it out) |
 | Cellar | `sensor.cork_dork_*` (4), cellar door, cellar light, 2 battery sensors; REST `/api/wine_cellar/wines` |
 | Calendar | `calendar.opensprinkler_schedule` + Google calendars once configured; REST `/api/calendars/<id>` |
 | Chores | `todo.chores_ian/helen/marcus/alexa/connor/kyle/himack` |

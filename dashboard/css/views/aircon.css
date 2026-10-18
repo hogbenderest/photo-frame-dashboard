@@ -1,0 +1,40 @@
+/* Aircon: whole-house target, two unit chips, zone card grid. */
+.ac-wrap { height: 100%; padding: var(--pad); display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
+.ac-head { display: grid; grid-template-columns: 220px 1fr; gap: var(--gap); flex: none; }
+.ac-wholehouse { border: 2px solid var(--ink); border-radius: var(--r); background: var(--card); padding: 10px 18px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; cursor: pointer; text-align: left; }
+.ac-wh-big { font-size: 44px; font-weight: 800; font-stretch: 62%; line-height: 1; }
+.ac-wholehouse small { font-size: var(--fs-min); color: var(--mute); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+.ac-units { display: flex; gap: var(--gap); }
+.ac-unit { flex: 1; border: 2px solid var(--line); border-radius: var(--r); background: var(--card); padding: 10px 18px; display: flex; align-items: center; gap: 16px; cursor: pointer; text-align: left; }
+.ac-unit.is-on { border-color: var(--amber); }
+.ac-unit b { font-size: var(--fs-body); font-weight: 800; }
+.ac-unit-mode { font-size: var(--fs-min); font-weight: 800; color: var(--mute); text-transform: uppercase; letter-spacing: .05em; }
+.ac-unit.is-on .ac-unit-mode { color: var(--amber); }
+.ac-unit-t { margin-left: auto; font-size: var(--fs-m); font-weight: 800; }
+.ac-unit-t small { font-size: var(--fs-min); color: var(--mute); }
+
+.ac-group { flex: 1; display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+.ac-gz { flex: 1; display: grid; grid-auto-flow: row; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); grid-template-rows: 1fr; gap: 10px; }
+.ac-zone { position: relative; border: 2px solid var(--line); border-radius: var(--r); background: var(--card); padding: 10px 14px; display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 2px; cursor: pointer; text-align: left; overflow: hidden; }
+.ac-zone.is-on { border-color: var(--amber); background: rgba(var(--amber-rgb), .08); }
+.ac-zone.is-cooling { border-color: var(--ok); background: rgba(0 163 108 / .08); }
+.ac-zone.is-heating { border-color: var(--alert); background: rgba(var(--alert-rgb), .07); }
+.ac-z-name { font-size: var(--fs-min); font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-2); }
+.ac-z-cur { font-size: 38px; font-weight: 800; font-stretch: 62%; line-height: 1; }
+.ac-z-tgt { font-size: var(--fs-min); font-weight: 800; color: var(--mute); text-transform: uppercase; letter-spacing: .04em; }
+.ac-z-vent { display: flex; align-items: center; gap: 4px; font-size: var(--fs-min); font-weight: 800; color: var(--ink-2); }
+.ac-z-vent.is-mute { opacity: .35; }
+
+.ac-sheet { display: flex; flex-direction: column; gap: 10px; min-width: 480px; }
+.ac-sheet-name { font-size: var(--fs-l); line-height: 1.05; }
+.ac-sheet-cur { font-size: var(--fs-body); font-weight: 700; color: var(--ink-2); }
+.ac-steprow { display: flex; align-items: center; gap: 14px; }
+.ac-stepbtn { width: 64px; height: 64px; border-radius: var(--r-s); border: 2px solid var(--ink); background: var(--card); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.ac-stepbtn:active { background: var(--paper-2); }
+.ac-stepval { flex: 1; text-align: center; font-size: var(--fs-xl); font-weight: 800; font-stretch: 62%; }
+.ac-ventrow { display: flex; gap: 8px; flex-wrap: wrap; }
+.ac-ventbtn { padding: 8px 16px; border-radius: 999px; border: 2px solid var(--line); background: var(--card); font-size: var(--fs-min); font-weight: 800; cursor: pointer; text-transform: capitalize; }
+.ac-ventbtn.is-active { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.ac-sheet-actions { display: flex; gap: 8px; margin-top: 6px; }
+.ac-apply { margin-top: 8px; width: 100%; justify-content: center; border-color: var(--ok); color: var(--ok); }
+.ac-note { font-size: var(--fs-min); color: var(--mute); font-weight: 700; line-height: 1.5; }
