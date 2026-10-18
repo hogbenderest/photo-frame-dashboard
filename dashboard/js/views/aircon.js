@@ -136,12 +136,14 @@
         onMount: function (sheet) {
           var val = sheet.querySelector('.ac-stepval');
           var v = tgt;
+          var zlo = HA.attr(z.climate, 'min_temp') || 16;
+          var zhi = HA.attr(z.climate, 'max_temp') || 32; // Downstairs zones: 16-30
           sheet.querySelector('[data-ztdec]').addEventListener('click', function () {
-            v = clamp(v - 1, 16, 32); val.textContent = v + '\u00B0';
+            v = clamp(v - 1, zlo, zhi); val.textContent = v + '\u00B0';
             HA.callService('climate.set_temperature', { entity_id: z.climate, temperature: v });
           });
           sheet.querySelector('[data-ztinc]').addEventListener('click', function () {
-            v = clamp(v + 1, 16, 32); val.textContent = v + '\u00B0';
+            v = clamp(v + 1, zlo, zhi); val.textContent = v + '\u00B0';
             HA.callService('climate.set_temperature', { entity_id: z.climate, temperature: v });
           });
           sheet.querySelectorAll('[data-vent]').forEach(function (b) {
@@ -198,12 +200,14 @@
               b.classList.add('is-active');
             });
           });
+          var ulo = HA.attr(u.id, 'min_temp') || 16;
+          var uhi = HA.attr(u.id, 'max_temp') || 32;
           sheet.querySelector('[data-utdec]').addEventListener('click', function () {
-            v = clamp(v - 1, 16, 32); val.textContent = v + '\u00B0';
+            v = clamp(v - 1, ulo, uhi); val.textContent = v + '\u00B0';
             HA.callService('climate.set_temperature', { entity_id: u.id, temperature: v });
           });
           sheet.querySelector('[data-utinc]').addEventListener('click', function () {
-            v = clamp(v + 1, 16, 32); val.textContent = v + '\u00B0';
+            v = clamp(v + 1, ulo, uhi); val.textContent = v + '\u00B0';
             HA.callService('climate.set_temperature', { entity_id: u.id, temperature: v });
           });
         }

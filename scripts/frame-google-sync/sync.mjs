@@ -124,9 +124,9 @@ async function authorize(cfg) {
 }
 
 // ---------------------------------------------------------------- gmail
-async function gmailUnread(tok) {
+async function gmailFetchMeta(tok, query, max) {
   const h = { Authorization: 'Bearer ' + tok };
-  const r = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=100&q=' + encodeURIComponent('is:unread in:inbox'), { headers: h });
+  const r = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=' + max + '&q=' + encodeURIComponent(query), { headers: h });
   if (!r.ok) fail('gmail list HTTP ' + r.status + ' ' + (await r.text()).slice(0, 200));
   const j = await r.json();
   const ids = (j.messages || []).map(m => m.id);
@@ -140,8 +140,16 @@ async function gmailUnread(tok) {
   }
   return out;
 }
+async function gmailUnread(tok) {
+  return gmailFetchMeta(tok, 'is:unread in:inbox', 100);
+}
+// Starred = the user-curated "important" set (bills etc); stars persist after
+// the mail is read, so this is independent of the unread list.
+async function gmailStarred(tok) {
+  return gmailFetchMeta(tok, 'is:starred in:inbox', 30);
+}
 
-async function pushMail(cfg, messages, needsReauth) {
+async function pushMail(cfg, messages, starred, needsReauth) {
   if (!cfg.ha_url || !cfg.ha_token) { console.error('mail: skipped (no ha_url/ha_token in config)'); return false; }
   const body = {
     state: needsReauth ? '0' : String(messages.length),
@@ -149,6 +157,7 @@ async function pushMail(cfg, messages, needsReauth) {
       friendly_name: 'Frame Mail Unread',
       icon: 'mdi:email-alert',
       messages: needsReauth ? [] : messages,
+      starred: needsReauth ? [] : (starred || []),
       needs_reauth: needsReauth || false,
       updated_at: new Date().toISOString()
     }
@@ -158,7 +167,8 @@ async function pushMail(cfg, messages, needsReauth) {
     body: JSON.stringify(body)
   });
   if (!r.ok) { console.error('mail: HA POST HTTP ' + r.status + ' ' + (await r.text()).slice(0, 200)); return false; }
-  console.log('mail: ' + (needsReauth ? 'needs_reauth flag set' : messages.length + ' unread pushed to ' + MAIL_SENSOR));
+  console.log('mail: ' + (needsReauth ? 'needs_reauth flag set'
+    : messages.length + ' unread, ' + (starred || []).length + ' starred pushed to ' + MAIL_SENSOR));
   return true;
 }
 
@@ -273,7 +283,9 @@ async function sync(cfg) {
   }
   let mail = [];
   if (!needsReauth) mail = await gmailUnread(tok);
-  await pushMail(cfg, mail, needsReauth);
+  let starred = [];
+  if (!needsReauth) starred = await gmailStarred(tok).catch(function () { return []; });
+  await pushMail(cfg, mail, starred, needsReauth);
   await syncPhotos(cfg, tok || '', needsReauth);
 }
 

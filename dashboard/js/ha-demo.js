@@ -11,6 +11,11 @@
     return { entity_id: entity_id, state: state, attributes: attributes || {}, last_changed: last_changed || now.toISOString(), last_updated: now.toISOString() };
   }
 
+  var MAIL_STARRED = [
+    { from: 'Synergy <accounts@synergy.net.au>', subject: 'Your electricity bill is ready', date: iso(0, 9, 15) },
+    { from: 'Water Corporation <billing@watercorporation.com.au>', subject: 'Account statement', date: iso(-3, 14, 0) }
+  ];
+
   var states = {};
   function S(o) { states[o.entity_id] = o; }
 
@@ -96,6 +101,16 @@
 
   // patio (demo: lights + RF fan mirrors)
   S(st('input_boolean.patio_fan_power_state', 'off', { friendly_name: 'Patio Fan Power State' }));
+  // mail sensor demo state incl. starred (user-curated important set)
+  S(st('sensor.frame_mail_unread', '3', {
+    friendly_name: 'Frame Mail Unread',
+    messages: [
+      { from: 'Synergy <accounts@synergy.net.au>', subject: 'Your electricity bill is ready', date: iso(0, 9, 15) },
+      { from: 'Google <no-reply@accounts.google.com>', subject: 'Security alert', date: iso(0, 7, 30) },
+      { from: 'Water Corporation <billing@watercorporation.com.au>', subject: 'Account statement', date: iso(-3, 14, 0) }
+    ],
+    starred: MAIL_STARRED
+  }));
 
   // aircon (demo states mirror the live AirTouch shapes)  S(st('input_number.aircon_whole_house_target', '21.0', { min: 16, max: 30, step: 1, friendly_name: 'Aircon Whole House Target' }));
   S(st('climate.ac_0', 'off', { hvac_modes: ['off', 'auto', 'cool', 'dry', 'fan_only', 'heat'], fan_modes: ['low', 'medium', 'high', 'auto'], current_temperature: 27, temperature: 23, fan_mode: 'low', friendly_name: 'Main Unit' }));
@@ -135,6 +150,7 @@
 
   window.DEMO_STATES = { states: states };
   window.DEMO_PAYLOADS = {
+    mailStarred: MAIL_STARRED,
     wine: {
       wines: [
         { id: 'w1', name: 'Rockford Basket Press Shiraz', vintage: '2018', grape_variety: 'Shiraz', rating: 96, drink_window: '2023-2033', peak_status: 'at_peak', value: 90, location: { human_readable: 'Cabinet 1, Shelf 2, Column 3' } },
@@ -144,7 +160,6 @@
     },
     calendarEvents: [
       { summary: 'Front Retic Morning', start: { dateTime: iso(1, 4, 30) }, end: { dateTime: iso(1, 6, 30) }, location: 'Front garden' }
-    ],
-    photos: null // demo: photos not configured
+    ],    photos: null // demo: photos not configured
   };
 })();

@@ -53,8 +53,10 @@
         onMount: function (sheet) {
           var val = sheet.querySelector('.ac-stepval');
           var v = tgt || 21;
+          var zlo = HA.attr(z.climate, 'min_temp') || 16;
+          var zhi = HA.attr(z.climate, 'max_temp') || 32;
           function clampSet(d) {
-            v = Math.max(16, Math.min(32, v + d));
+            v = Math.max(zlo, Math.min(zhi, v + d));
             val.textContent = v + '\u00B0';
             HA.callService('climate.set_temperature', { entity_id: z.climate, temperature: v });
           }

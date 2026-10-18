@@ -126,25 +126,36 @@
           return '<span><b>' + App.esc(w) + '</b> ' + App.esc(e.title) + '</span>';
         }).join('') + '</div></div>';
     }
-    // Mail: unread count + deduped senders; bills get a red pill.
+    // Mail: unread count + deduped senders; starred (user-curated important)
+    // leads with a star pill; keyword bills stay as a fallback catch.
     var n = mailCount();
+    var starred = HA.attr(C.mail.sensor, 'starred') || [];
+    var starNames = [];
+    starred.forEach(function (m) {
+      var nm = senderName(m.from);
+      if (starNames.indexOf(nm) < 0 && starNames.length < 3) starNames.push(nm);
+    });
     var mailHtml;
     if (n === null) {
       mailHtml = '<div class="cu-mail is-mute">' + App.icon('box', 20) + '<span>Mail \u00B7 waiting for first sync</span></div>';
-    } else if (n === 0) {
+    } else if (n === 0 && !starred.length) {
       mailHtml = '<button class="cu-mail is-ok" data-mail="1">' + App.icon('check', 20) + '<span>Mail \u00B7 no unread</span></button>';
     } else {
       var msgs = HA.attr(C.mail.sensor, 'messages') || [];
       var names = [], bills = 0;
       msgs.forEach(function (m) {
         var nm = senderName(m.from);
-        if (names.indexOf(nm) < 0 && names.length < C.mail.maxSenders) names.push(nm);
+        if (starNames.indexOf(nm) < 0 && names.indexOf(nm) < 0 && names.length < C.mail.maxSenders) names.push(nm);
         if (isBill(m)) bills++;
       });
-      mailHtml = '<button class="cu-mail' + (bills ? ' is-warn' : '') + '" data-mail="1">' + App.icon('bell', 20) +
-        '<span><b class="num">' + n + ' unread</b>' + (names.length ? ' \u00B7 ' + names.join(', ') : '') +
-        (n - names.length > 0 ? ' +' + (n - names.length) : '') +
-        (bills ? ' <i class="cu-billpill">' + bills + ' bill' + (bills > 1 ? 's' : '') + '</i>' : '') +
+      var starHtml = starred.length
+        ? '<i class="cu-starpill">' + App.icon('star', 14) + starNames.join(', ') + '</i>'
+        : '';
+      mailHtml = '<button class="cu-mail' + (bills || starred.length ? ' is-warn' : '') + '" data-mail="1">' + App.icon('bell', 20) +
+        '<span>' + (n ? '<b class="num">' + n + ' unread</b>' : '') +
+        (starHtml || '') +
+        (names.length ? ' \u00B7 ' + names.join(', ') + (n - starNames.length - names.length > 0 ? ' +' + (n - starNames.length - names.length) : '') : '') +
+        (!starred.length && bills ? ' <i class="cu-billpill">' + bills + ' bill' + (bills > 1 ? 's' : '') + '</i>' : '') +
         '</span></button>';
     }
     return '<div class="h-hero2">' + evHtml + mailHtml + '</div>';
@@ -216,22 +227,29 @@
 
   function mailSheet() {
     var n = mailCount();
-    if (n === null || n === 0) {
+    var starred = HA.attr(C.mail.sensor, 'starred') || [];
+    var msgs = HA.attr(C.mail.sensor, 'messages') || [];
+    if ((n === null || n === 0) && !starred.length) {
       App.sheet('<div class="cl-detail"><div class="label">Mail</div><div class="serif cl-detail-name">' +
         (n === 0 ? 'No unread mail' : 'Not synced yet') + '</div>' +
         '<small class="li-note">' + App.esc(C.mail.hourly) + '</small></div>');
       return;
     }
-    var msgs = HA.attr(C.mail.sensor, 'messages') || [];
-    App.sheet(
-      '<div class="cl-detail"><div class="label">Mail \u00B7 <b class="num">' + n + '</b> unread</div>' +
-      '<div class="cl-list cl-mail">' + msgs.map(function (m) {
+    function rows(list, starredRow) {
+      return list.map(function (m) {
         var bill = isBill(m);
         return '<div class="li-item cl-mail-item' + (bill ? ' is-bill' : '') + '">' +
-          '<span class="ch-head">' + App.esc(senderName(m.from)) + (bill ? ' <i class="cu-billpill">bill</i>' : '') + '</span>' +
+          '<span class="ch-head">' + App.esc(senderName(m.from)) +
+          (starredRow ? ' <i class="cu-starpill">' + App.icon('star', 12) + '</i>' : (bill ? ' <i class="cu-billpill">bill</i>' : '')) + '</span>' +
           '<span class="li-name">' + App.esc(m.subject || '(no subject)') + '</span>' +
           '<small class="cl-mail-date">' + (m.date ? App.fmt.rel(new Date(m.date)) : '') + '</small></div>';
-      }).join('') + '</div>' +
+      }).join('');
+    }
+    App.sheet(
+      '<div class="cl-detail">' +
+      (starred.length ? '<div class="label">Starred \u00B7 important</div><div class="cl-list cl-mail">' + rows(starred, true) + '</div>' : '') +
+      '<div class="label">Mail \u00B7 <b class="num">' + n + '</b> unread</div>' +
+      '<div class="cl-list cl-mail">' + rows(msgs, false) + '</div>' +
       '<small class="li-note">' + App.esc(C.mail.hourly) + '</small></div>');
   }
 
