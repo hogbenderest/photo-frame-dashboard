@@ -108,7 +108,36 @@ Each step has an undo. Do them in this order.
    *Undo:* unload the launchd job, delete `~/.config/frame-google-sync/` and
    `www/frame-photos/`, revoke the HA token and the Google client.
 
+## Zone map sign-off (verified 2026-10-18, retic map feature)
+
+The frame's zone polygons ship in `dashboard/public/retic/zone_polygons.json`, extracted from
+the known-good HA Watering dashboard clip-paths (`.storage/lovelace.dashboard_watering`). The
+zone-number mapping was verified point-by-point against the corrected_v2 source file
+(centroids/areas match for all 9; boundary details follow the dashboard). Render order is
+`1,2,3,4,7,5,6,8,9` - hedge(7) parts must sit below the lawns they encircle (project gotcha 3).
+
+| Zone | Name | Entity | Notes |
+|---|---|---|---|
+| 1 | Verge Strip Top | `binary_sensor.opensprinkler_s01_station_running` | verified live: run -> map pulses; stop -> clears |
+| 2 | Verge Strip Mid | `...s02...` | centroid/area exact |
+| 3 | Verge Strip Bottom | `...s03...` | centroid/area exact |
+| 4 | Lawn Upper | `...s04...` | dashboard's 16-pt boundary preferred over the 8-pt source |
+| 5 | Letterbox Lawn (2 areas) | `...s05...` | both parts exact; tap sheet verified |
+| 6 | Driveway Lawn | `...s06...` | exact |
+| 7 | Hedge Borders (2 areas) | `...s07...` | both parts exact |
+| 8 | Centre Garden Bed | `switch.centre_garden_bed` | patio valve; test-run disabled while on |
+| 9 | Garden Borders | `switch.garden_borders` | patio valve |
+
+Live semantics proven on-frame (2026-10-18): `script.retic_frame_test_zone` started station 1
+(map zone 1 `is-run`, zone 2 untouched); `opensprinkler.stop` on the station entity stopped
+only station 1 (per-station `/cm sid=en=0`, per source + runtime). Wine removal proven
+non-destructively: a test bottle added by admin, rendered in the rack, tapped to its sheet,
+removed via the frame's limited-user `wine_cellar.remove_wine` call, verified gone from
+inventory and rack (47/48 slots restored).
+
 ## Entity map / allowlist mirror
+
+
 
 | View | Entities (config key in `js/ha-config.js`) |
 |---|---|

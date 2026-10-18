@@ -145,7 +145,19 @@
         // Frame-only test runs, capped at 120 s server-side (WaterCorp 2-minute
         // per-station testing allowance). Never use retic_run_zone/valve here.
         testZone: 'script.retic_frame_test_zone',   // fields: station, duration
-        testValve: 'script.retic_frame_test_valve'  // fields: valve, duration
+        testValve: 'script.retic_frame_test_valve', // fields: valve, duration
+        // Per-zone stop: stations via opensprinkler.stop on the station switch
+        // (verified per-station: pyopensprinkler sends /cm sid=en=0 for that
+        // station only); patio valves via switch.turn_off.
+        stopStation: 'opensprinkler.stop'
+      },
+      map: {
+        polygons: '/retic/zone_polygons.json',
+        layout: '/retic/layout.jpg',
+        // Render order is load-bearing (project gotcha 3): hedge(7) loops
+        // encircle lawn interiors under nonzero fill, so hedge must sit
+        // below the lawns it wraps. Order from the HA Watering dashboard.
+        order: [1, 2, 3, 4, 7, 5, 6, 8, 9]
       },
       zones: [
         { n: 1, name: 'Verge Strip Top',    run: 'binary_sensor.opensprinkler_s01_station_running', enabled: 'switch.opensprinkler_s01_station_enabled', station: 'switch.opensprinkler_s01_station_enabled', kind: 'station' },

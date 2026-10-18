@@ -311,6 +311,31 @@ flag serves the loopback HTTP origin.
   Session screenshots on /sdcard are pulled to backups/ then deleted (1.7 MB
   cleaned today). Disk check added to the runbook maintenance list.
 
+## Session 9 (2026-10-18): retic map + cellar racks (challenger-reviewed)
+
+- **Zone-map sign-off done before shipping** (review amendment 2): polygon-to-zone mapping
+  verified point-by-point against the known-good HA Watering dashboard clip-paths - all 9 zones
+  match (centroid/area); the frame ships the dashboard's own refined clip-paths as
+  `public/retic/zone_polygons.json` + a 95 KB `layout.jpg` (review wanted <=200 KB), so no
+  /local/ 31-day-cache dependency. Render order per gotcha 3 (hedge below lawns).
+- **Map verified on-frame**: 9 polygon groups in order 1,2,3,4,7,5,6,8,9; zone sheet opens with
+  the right name (zone 5 -> "Letterbox Lawn", run + stop-all buttons).
+- **Per-zone stop proven live** (review amendment 5): started station 1 via the capped frame
+  script (map pulsed), stopped it via `opensprinkler.stop` on the station entity (source shows
+  per-station `/cm sid=en=0`), zone 2 untouched throughout.
+- **Cellar racks**: one cabinet at a time (review amendment 3 - 3x12 side-by-side would give
+  ~33px cells, under the ~44px touch target); tabs Shelf 1/2/3, 4x12 grid, 47+1/47/47 slots,
+  colour by peak_status including `past_due` + `unknown` (review amendment 4). Geometry from
+  the `wine_cellar/get_cabinets` WS command (works for the limited user; note it wraps the
+  array as `{cabinets:[...]}`) with derive-from-bottles fallback; `HA.callWS` added to ha.js.
+- **"Drank it" proven non-destructively**: admin-added test bottle -> appeared in rack -> tap
+  opened correct sheet -> removed via the frame's limited-user
+  `HA.callService('wine_cellar.remove_wine')` -> gone from inventory and rack. The remove
+  button hold-to-confirms, then forces `HA.wineInventory(true)`.
+- Bugs found during verification: rack tabs rendered before cabinets loaded (null guard added);
+  the view kept a stale `V.wine` cache beside the `HA.wine` cache (view now reads `HA.wine`
+  as the single source).
+
 ## Open questions
 
 - Why did the frame drop off USB mid-session? (FOTA reboot suspected but unverified - check uptime and Frameo version when it returns.)

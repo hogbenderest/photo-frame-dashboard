@@ -162,6 +162,19 @@
     return msg.id;
   }
 
+  // One-shot WS command (e.g. wine_cellar/get_cabinets). Resolves with the
+  // command result; the pendingWS map is drained in ws.onmessage.
+  HA.pendingWS = {};
+  HA.callWS = function (type, data) {
+    return new Promise(function (resolve, reject) {
+      if (!HA.ws || HA.ws.readyState !== 1) { reject(new Error('websocket not open')); return; }
+      var payload = Object.assign({}, data || {}, { id: ++HA.msgId, type: type });
+      HA.pendingWS[payload.id] = { resolve: resolve, reject: reject };
+      try { HA.ws.send(JSON.stringify(payload)); }
+      catch (e) { delete HA.pendingWS[payload.id]; reject(e); }
+    });
+  };
+
   function setStatus(s) {
     if (HA.status === s) return;
     HA.status = s;
@@ -188,6 +201,14 @@
         opened = true;
         retryDelay = 5000;
         send({ type: 'get_states' });
+        return;
+      }
+      // One-shot WS commands (HA.callWS): resolve/reject by message id.
+      if (m.type === 'result' && HA.pendingWS && HA.pendingWS[m.id]) {
+        var p = HA.pendingWS[m.id];
+        delete HA.pendingWS[m.id];
+        if (m.success) p.resolve(m.result);
+        else p.reject(new Error((m.error && m.error.message) || 'ws command failed'));
         return;
       }
       if (m.type === 'result' && m.success && m.result && Array.isArray(m.result)) {

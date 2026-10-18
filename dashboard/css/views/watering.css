@@ -1,30 +1,38 @@
-/* Watering: status strip, 9-zone grid, actions, soil moisture. */
-.retic-wrap { height: 100%; padding: var(--pad); display: grid; grid-template-rows: auto 1fr auto auto; grid-template-columns: 1fr 460px; gap: var(--gap); }
-.rz-strip { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 10px; }
-.rz-bit { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 999px; background: var(--card); border: 2px solid var(--line); font-size: var(--fs-min); font-weight: 800; letter-spacing: .03em; }
-.rz-bit.is-warn { border-color: var(--amber); color: var(--ink); }
-.rz-bit.is-run { border-color: var(--ok); color: var(--ink); }
+/* Watering: map-led layout. Left = property map (SVG polygons over layout),
+   right = status strip, controls, soil moisture. */
+.retic-wrap--map { height: 100%; padding: var(--pad); display: grid; grid-template-columns: minmax(0, 660px) 1fr; gap: var(--gap); overflow: hidden; }
+.rz-map { position: relative; border-radius: var(--r); border: 2px solid var(--line); background: var(--card); overflow: hidden; display: flex; flex-direction: column; }
+.rz-svg { flex: 1; min-height: 0; position: relative; }
+.rz-svgel { position: absolute; inset: 0; width: 100%; height: 100%; }
+.rz-map-note { padding: 8px 12px; font-size: var(--fs-min); color: var(--mute); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; border-top: 2px solid var(--line); background: var(--paper); }
+
+/* zone polygons: translucent by default, green pulse when running, dim when disabled */
+.rz-pz path { fill: rgba(45 91 255 / .28); stroke: var(--ink); stroke-width: 3; stroke-linejoin: round; transition: fill .4s var(--ease); cursor: pointer; }
+.rz-pz:hover path { fill: rgba(45 91 255 / .5); }
+.rz-pz.is-run path { fill: rgba(0 163 108 / .45); animation: rz-pulse 1.6s infinite; }
+.rz-pz.is-run.is-holding path, .rz-pz.is-holding path { fill: rgba(229 38 30 / .4); }
+.rz-pz.is-off path { fill: rgba(17 17 17 / .05); stroke-dasharray: 14 10; }
+.rz-pzn { font-size: 44px; font-weight: 800; fill: var(--paper); stroke: rgba(17 17 17 / .55); stroke-width: 1; paint-order: stroke; pointer-events: none; }
+.rz-pz.is-run .rz-pzn { fill: #FFFFFF; }
+@keyframes rz-pulse { 0% { fill-opacity: 1; } 50% { fill-opacity: .45; } 100% { fill-opacity: 1; } }
+
+.rz-side { display: flex; flex-direction: column; gap: var(--gap); min-width: 0; overflow: hidden; }
+.rz-strip { display: flex; flex-wrap: wrap; gap: 8px; }
+.rz-bit { display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px; background: var(--card); border: 2px solid var(--line); font-size: var(--fs-min); font-weight: 800; letter-spacing: .02em; }
+.rz-bit.is-warn { border-color: var(--amber); }
+.rz-bit.is-run { border-color: var(--ok); }
 .rz-bit.is-run b { color: var(--ok); }
 .rz-bit.is-boost { border-color: var(--alert); }
-.pulse { width: 10px; height: 10px; border-radius: 50%; background: var(--ok); animation: pulse 1.2s infinite; }
-.rz-zones { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr 1fr 1fr; gap: 10px; }
-.rz-zone { position: relative; border-radius: var(--r-s); border: 2px solid var(--line); background: var(--card); display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 4px; padding: 12px 16px; cursor: pointer; text-align: left; overflow: hidden; }
-.rz-zone.is-run { border-color: var(--ok); background: rgba(0 163 108 / .1); }
-.rz-zone.is-off { opacity: .45; }
-.rz-zone.is-holding { border-color: var(--alert); }
-.rz-n { font-size: var(--fs-m); font-weight: 800; font-stretch: 62%; color: var(--mute); }
-.rz-name { font-size: var(--fs-body); font-weight: 800; }
-.rz-state { font-size: var(--fs-min); font-weight: 700; color: var(--mute); text-transform: uppercase; letter-spacing: .05em; display: flex; align-items: center; gap: 6px; }
-.rz-zone.is-run .rz-state { color: var(--ok); }
-.rz-zone.is-run .pulse { background: var(--ok); }
-.rz-run { position: absolute; right: 12px; bottom: 10px; font-size: 11px; font-weight: 700; color: var(--mute); text-transform: uppercase; letter-spacing: .05em; }
-.rz-actions { grid-column: 1; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-.rz-act { display: flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 999px; border: 2px solid var(--line); background: var(--card); font-size: var(--fs-body); font-weight: 800; cursor: pointer; }
+.pulse { width: 10px; height: 10px; border-radius: 50%; background: var(--ok); animation: rz-pulse 1.2s infinite; }
+
+.rz-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.rz-act { display: flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 999px; border: 2px solid var(--line); background: var(--card); font-size: var(--fs-min); font-weight: 800; cursor: pointer; }
 .rz-act.is-holding { border-color: var(--alert); }
+.rz-act:disabled { opacity: .4; }
 .rz-stop { border-color: var(--alert); color: var(--alert); }
 .rz-hold.is-on { border-color: var(--amber); }
-.rz-note { grid-column: 1 / -1; font-size: var(--fs-min); color: var(--mute); font-weight: 700; letter-spacing: .03em; }
-.rz-soilcard { grid-column: 2; grid-row: 2 / 4; padding: 14px 18px; border-radius: var(--r); border: 2px solid var(--line); background: var(--card); display: flex; flex-direction: column; gap: 6px; overflow: hidden; }
+
+.rz-soilcard { flex: 1; padding: 14px 18px; border-radius: var(--r); border: 2px solid var(--line); background: var(--card); display: flex; flex-direction: column; gap: 6px; overflow: hidden; }
 .rz-soil { display: flex; flex-direction: column; gap: 7px; }
 .rz-meter { display: grid; grid-template-columns: 130px 1fr 52px; align-items: center; gap: 8px; }
 .rz-meter-name { font-size: var(--fs-min); font-weight: 700; color: var(--ink-2); }
@@ -34,4 +42,11 @@
 .rz-meter.is-low .rz-meter-val { color: var(--alert); }
 .rz-meter-val { font-size: var(--fs-min); font-weight: 800; text-align: right; }
 .rz-meter.is-empty { opacity: .4; }
-@keyframes pulse { 0% { opacity: 1; } 50% { opacity: .25; } 100% { opacity: 1; } }
+
+/* zone action sheet */
+.rz-sheet { display: flex; flex-direction: column; gap: 12px; min-width: 460px; }
+.rz-sheet-name { font-size: var(--fs-l); line-height: 1; }
+.rz-sheet-state { font-size: var(--fs-body); font-weight: 700; color: var(--ink-2); }
+.is-run-text { color: var(--ok); }
+.rz-sheet-actions { display: flex; flex-direction: column; gap: 8px; }
+.rz-note { font-size: var(--fs-min); color: var(--mute); font-weight: 700; letter-spacing: .02em; }
