@@ -6,7 +6,17 @@
 
   function pool() {
     var m = HA && HA.photos;
-    return (m && m.photos && m.photos.length) ? m.photos : [];
+    var raw = (m && m.photos && m.photos.length) ? m.photos : [];
+    // The sync pipeline writes RELATIVE /local/... URLs; resolve them against
+    // the HA host (the page origin is the loopback kiosk, which 404s them).
+    return raw.map(function (p) {
+      var url = p.url || '';
+      if (url.charAt(0) === '/') url = HA.url + url;
+      var q = {};
+      for (var k in p) q[k] = p[k];
+      q.url = url;
+      return q;
+    });
   }
   App.photoPool = pool;
 

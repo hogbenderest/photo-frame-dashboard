@@ -43,7 +43,12 @@ const STATE = path.join(DIR, 'state.json');
 const WWW_PHOTOS = path.join(homedir(), 'ha-config', 'www', 'frame-photos');
 const MANIFEST = path.join(WWW_PHOTOS, 'frame-photos.js');
 const MAIL_SENSOR = 'sensor.frame_mail_unread';
-const SCOPES = ['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/photoslibrary.readonly'];
+// Google closed the Photos Library API to personal (non-partner) apps on
+// 2025-03-31: photoslibrary.readonly 403s on albums.list/sharedAlbums.list
+// (verified with a live token). The frame's photo source is therefore a
+// Google Drive folder - full read via drive.readonly, which personal apps
+// in production may use (the Gmail half proves the pattern).
+const SCOPES = ['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/drive.readonly'];
 const REDIRECT_PORT = 8399;
 
 async function readJson(p) { try { return JSON.parse(await readFile(p, 'utf8')); } catch { return null; } }
@@ -84,7 +89,10 @@ async function accessToken(cfg, tokens) {
 }
 
 async function authorize(cfg) {
-  const redirect = `http://localhost:${REDIRECT_PORT}/`;
+  // Google's loopback rule: desktop/web clients must register the literal
+  // 127.0.0.1 form; "localhost" is a different URI and 400s with
+  // redirect_uri_mismatch.
+  const redirect = `http://127.0.0.1:${REDIRECT_PORT}/`;
   const url = 'https://accounts.google.com/o/oauth2/v2/auth?' + new URLSearchParams({
     client_id: cfg.client_id, redirect_uri: redirect, response_type: 'code',
     access_type: 'offline', prompt: 'consent',
@@ -156,48 +164,50 @@ async function pushMail(cfg, messages, needsReauth) {
   return true;
 }
 
-// ---------------------------------------------------------------- photos
-async function g(tok, url) {
+// ---------------------------------------------------------------- photos (Drive)
+async function driveGet(tok, params) {
+  const url = 'https://www.googleapis.com/drive/v3/files?' + new URLSearchParams(params);
   const r = await fetch(url, { headers: { Authorization: 'Bearer ' + tok } });
-  if (!r.ok) fail('photos HTTP ' + r.status + ' ' + (await r.text()).slice(0, 200) + ' @ ' + url.slice(0, 80));
+  if (!r.ok) fail('drive list HTTP ' + r.status + ' ' + (await r.text()).slice(0, 200));
   return r.json();
 }
-async function listAlbums(tok, which, listUrl) {
-  const albums = [];
-  let pageToken = '';
-  do {
-    const j = await g(tok, 'https://photoslibrary.googleapis.com/v1/' + listUrl + '?pageSize=50' + (pageToken ? '&pageToken=' + pageToken : ''));
-    (j[which] || []).forEach(a => albums.push(a));
-    pageToken = j.nextPageToken || '';
-  } while (pageToken);
-  return albums;
+// Find the frame folder: owned by the account OR shared with it. Fail loudly
+// on zero (user must create it) and on duplicates (ambiguous source).
+async function findFrameFolder(tok, name) {
+  const FOLDER = "mimeType='application/vnd.google-apps.folder' and trashed=false";
+  const [own, shared] = await Promise.all([
+    driveGet(tok, { q: "name='" + name + "' and " + FOLDER, fields: 'files(id,name,modifiedTime)', pageSize: 50 }),
+    driveGet(tok, { q: "sharedWithMe=true and name='" + name + "' and " + FOLDER, fields: 'files(id,name,modifiedTime)', pageSize: 50 })
+  ]);
+  const all = (own.files || []).concat(shared.files || []);
+  if (all.length === 0) return null;
+  if (all.length > 1) fail('multiple Drive folders named "' + name + '" (' + all.length + ') - rename all but one');
+  return all[0].id;
 }
-async function albumMedia(tok, albumId) {
-  const items = [];
+async function listFolderImages(tok, folderId) {
+  const files = [];
   let pageToken = '';
-  // mediaItems:search is a POST; follow nextPageToken to exhaustion.
   for (;;) {
-    const r = await fetch('https://photoslibrary.googleapis.com/v1/mediaItems:search', {
-      method: 'POST', headers: { Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ albumId, pageSize: 100, pageToken })
+    const j = await driveGet(tok, {
+      q: "'" + folderId + "' in parents and trashed=false",
+      fields: 'nextPageToken,files(id,name,mimeType,createdTime,modifiedTime)',
+      pageSize: 200, pageToken
     });
-    if (!r.ok) fail('mediaItems:search HTTP ' + r.status);
-    const j = await r.json();
-    (j.mediaItems || []).forEach(i => items.push(i));
+    (j.files || []).forEach(function (f) { if ((f.mimeType || '').startsWith('image/')) files.push(f); });
     if (!j.nextPageToken) break;
     pageToken = j.nextPageToken;
   }
-  return items;
+  return files;
 }
 function perthDate(creationTime) {
-  // creationTime is RFC3339 UTC; the frame shows Perth dates.
+  // RFC3339 UTC in; the frame shows Perth dates.
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Perth', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(creationTime));
 }
 async function syncPhotos(cfg, tok, needsReauth) {
   await mkdir(WWW_PHOTOS, { recursive: true });
-  const state = (await readJson(STATE)) || { synced: {} };   // mediaItemId -> {file, date, place}
+  const state = (await readJson(STATE)) || { synced: {} };   // driveFileId -> {file, date, place}
+  const folderName = cfg.frame_folder || cfg.frame_album || 'Frame Photos';
   if (needsReauth) {
-    // Keep the last good manifest but flag it so the frame shows the reason.
     if (await exists(MANIFEST)) {
       const src = await readFile(MANIFEST, 'utf8');
       await writeFile(MANIFEST, src.replace(/\);?\s*$/, '').replace('window.FRAME_PHOTOS = ', 'window.FRAME_PHOTOS_REAUTH = ') + '\nwindow.FRAME_PHOTOS = Object.assign({}, window.FRAME_PHOTOS_REAUTH, { needs_reauth: true });');
@@ -205,35 +215,30 @@ async function syncPhotos(cfg, tok, needsReauth) {
     console.error('photos: needs reauth; last manifest kept with needs_reauth flag');
     return;
   }
-  const shared = await listAlbums(tok, 'sharedAlbums', 'sharedAlbums');
-  const mine = await listAlbums(tok, 'albums', 'albums');
-  const frameTitle = cfg.frame_album || 'Frame';
-  const curated = mine.filter(a => a.title === frameTitle);
-  if (mine.filter(a => a.title === frameTitle).length > 1) fail('multiple albums titled "' + frameTitle + '" - rename one (title collisions are ambiguous)');
-  const albums = shared.map(a => ({ id: a.id, title: a.title || 'Shared', place: a.title || 'Shared' }))
-    .concat(curated.map(a => ({ id: a.id, title: a.title, place: 'Frame' })));
-  console.log('photos: ' + albums.length + ' album(s) (' + shared.length + ' shared' + (curated.length ? ', curated "' + frameTitle + '"' : ', no curated album yet') + ')');
-  let kept = 0;
-  for (const al of albums) {
-    const media = await albumMedia(tok, al.id);
-    for (const it of media) {
-      if ((it.mimeType || '').startsWith('video/')) continue; // v1: no videos
-      if (state.synced[it.id]) { kept++; continue; }
-      const dl = await fetch(it.baseUrl + '=w' + (cfg.photo_width || 1280) + '-c', { headers: { Authorization: 'Bearer ' + tok } });
-      if (!dl.ok) continue;
-      const buf = Buffer.from(await dl.arrayBuffer());
-      const tmp = path.join(tmpdir(), 'fgs-' + it.id + '.jpg');
-      await writeFile(tmp, buf);
-      const file = it.id + '.jpg';
-      await writeFile(path.join(WWW_PHOTOS, file), buf);
-      // normalize to JPEG even if Google handed back HEIC
-      try { execFileSync('sips', ['-s', 'format', 'jpeg', path.join(WWW_PHOTOS, file), '--out', path.join(WWW_PHOTOS, file)], { stdio: 'ignore' }); } catch { }
-      await rm(tmp, { force: true });
-      state.synced[it.id] = { file, date: perthDate(it.mediaMetadata && it.mediaMetadata.creationTime || Date.now()), place: al.place };
-      kept++;
+  const folderId = await findFrameFolder(tok, folderName);
+  if (!folderId) {
+    console.error('photos: no Drive folder named "' + folderName + '" (owned or shared with 2lawlerst@gmail.com). Create it and drop photos in.');
+    if (!await exists(MANIFEST)) {
+      await writeFile(MANIFEST, 'window.FRAME_PHOTOS = { photos: [], updated_at: ' + JSON.stringify(new Date().toISOString()) + ' };\n');
     }
+    return;
   }
-  // rotation cap: newest N by date string, oldest get deleted from disk + state
+  const images = await listFolderImages(tok, folderId);
+  let downloaded = 0;
+  for (const f of images) {
+    if (state.synced[f.id]) continue;
+    const dl = await fetch('https://www.googleapis.com/drive/v3/files/' + f.id + '?alt=media', { headers: { Authorization: 'Bearer ' + tok } });
+    if (!dl.ok) continue; // individual failure: skip, next sync retries
+    const buf = Buffer.from(await dl.arrayBuffer());
+    const file = f.id + '.jpg';
+    await writeFile(path.join(WWW_PHOTOS, file), buf);
+    // normalize to JPEG and cap the longest edge (Drive originals can be huge;
+    // the frame has 512MB RAM and an A7 to chew on)
+    try { execFileSync('sips', ['-s', 'format', 'jpeg', '-Z', String(cfg.photo_width || 1280), path.join(WWW_PHOTOS, file), '--out', path.join(WWW_PHOTOS, file)], { stdio: 'ignore' }); } catch { }
+    state.synced[f.id] = { file, date: perthDate(f.createdTime || f.modifiedTime || Date.now()), place: folderName };
+    downloaded++;
+  }
+  // rotation cap: newest N by date string, oldest deleted from disk + state
   const entries = Object.entries(state.synced);
   if (entries.length > (cfg.max_photos || 200)) {
     entries.sort((a, b) => (a[1].date < b[1].date ? -1 : 1));
@@ -245,11 +250,13 @@ async function syncPhotos(cfg, tok, needsReauth) {
   }
   await writeJson(STATE, state);
   const v = Date.now();
-  const photos = Object.values(state.synced).map(rec => ({ url: '/local/frame-photos/' + rec.file + '?v=' + v, date: rec.date, place: rec.place }));
+  // No per-photo ?v=: filenames embed the unique Drive file id, so URLs are
+  // already immutable. The WebView caches each photo once for its 31-day
+  // window; only the manifest URL (loader-generated) carries a buster.
+  const photos = Object.values(state.synced).map(rec => ({ url: '/local/frame-photos/' + rec.file, date: rec.date, place: rec.place }));
   await writeFile(MANIFEST, 'window.FRAME_PHOTOS = ' + JSON.stringify({ photos, updated_at: new Date().toISOString() }) + ';\n');
-  console.log('photos: ' + photos.length + ' in manifest (' + WWW_PHOTOS + ')');
+  console.log('photos: ' + images.length + ' image(s) in "' + folderName + '", ' + downloaded + ' downloaded, ' + photos.length + ' in manifest');
 }
-async function exists(p) { try { await stat(p); return true; } catch { return false; } }
 
 // ---------------------------------------------------------------- driver
 async function sync(cfg) {

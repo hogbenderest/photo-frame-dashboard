@@ -273,6 +273,44 @@ flag serves the loopback HTTP origin.
   optionally a "Frame" album. The HA-native `google_photos` integration is unused by the
   frame (it cannot serve photos to it); our own OAuth client is the data path.
 
+## Session 8 (2026-10-18, later): Photos API is dead; Drive pivot; photos + launchd live
+
+- **Photos Library API closed to personal apps**: verified with a live token -
+  `albums.list` and `sharedAlbums.list` both 403 "insufficient authentication
+  scopes" even with `photoslibrary.readonly` granted. Google removed
+  library-wide read for non-partner apps on 2025-03-31. Re-authorizing with
+  wider scopes cannot fix policy. (The challenger's M4 flagged OAuth friction;
+  reality was stricter than that.)
+- **Pivot (user-approved)**: the photo source is now a Google Drive folder
+  ("Frame Photos") read via `drive.readonly`. 19 photos downloaded on the
+  first run; images resize to 1280px via sips; rotation cap 200 on HA side.
+  Per-photo `?v=` cache-busters were dropped after the first run - filenames
+  embed unique Drive ids, so URLs are immutable and the WebView caches each
+  photo once instead of re-downloading the pool after every hourly sync.
+- **mail + photos both verified on-frame**: Family card shows live unread
+  counts (19) + deduped senders; Photos tab renders the pool (1280x960 test
+  image loaded from the HA host).
+- **Two real bugs found on-frame during photo verification**: (1) the manifest's
+  relative `/local/...` URLs resolved against the PAGE origin (the loopback
+  kiosk, 404) - the Slideshow refills from `pool()` (raw manifest objects),
+  not the view's mapped array, so the fix belongs in `slideshow.js` `pool()`;
+  (2) the Photos view's `resume()` never retried the manifest and a loaded
+  pool never refreshed, so pre-manifest 404s and stale pools would stick for
+  the life of a session - now load() retries hourly (frames run for weeks).
+- **OAuth loopback fix**: the authorize URL must use `http://127.0.0.1:8399/`,
+  not `localhost` (redirect_uri_mismatch otherwise). Web application client
+  with the redirect registered; consent screen published (In production).
+- **launchd installed and self-verified**: hourly at :07, RunAtLoad run clean,
+  logs in the script directory.
+- **macOS LNP gotcha extended**: node (like python) is blocked from LAN IPs
+  (EHOSTUNREACH) while Apple tools (curl) pass - the sync's `ha_url` must be
+  the Nabu Casa relay, never the LAN IP, for the launchd job to work.
+- **Frame storage posture** (user asked): /data 26.7G with 565M used (2%).
+  The frame stores no photos - they stream from HA; its only growth surface
+  is Chromium's bounded, self-evicting HTTP cache plus bytes of localStorage.
+  Session screenshots on /sdcard are pulled to backups/ then deleted (1.7 MB
+  cleaned today). Disk check added to the runbook maintenance list.
+
 ## Open questions
 
 - Why did the frame drop off USB mid-session? (FOTA reboot suspected but unverified - check uptime and Frameo version when it returns.)

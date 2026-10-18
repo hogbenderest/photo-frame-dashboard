@@ -74,6 +74,17 @@ cp -r dist/* ../kiosk/assets/dashboard/     # update-frame.sh does this end-to-e
 4. Touch loop: `input tap <x> <y>` on a rail item, then read `location.hash`.
 5. Watch the 60 s idle-to-home timer during interactive tests.
 
+## Phase 6: storage and disk hygiene (wall displays run unattended for weeks)
+
+- The frame must stay a thin client: content streams from the server (HA /local/ or the loopback
+  APK); the only frame-side growth is the WebView's bounded, self-evicting HTTP cache and bytes
+  of localStorage. Verify with `adb shell df /data` (alert if > 80%) and
+  `su 0 du -sh /data/data/<kiosk>` on each maintenance visit.
+- Session screenshots on /sdcard: pull to the host backups, then delete from the frame.
+- Server-side photo pools need a rotation cap (the sync keeps the newest 200, ~60 MB).
+- A full /data partition on Android 6 breaks the whole device; if it ever happens, recovery is
+  the FEL flash of the partition backup (see rollback matrix).
+
 ## Rollback matrix (per layer)
 
 | Layer | Checkpoint | Undo |

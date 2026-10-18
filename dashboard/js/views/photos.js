@@ -6,8 +6,12 @@
   var C = window.HACONFIG, HA = window.HA, V = { slides: null };
 
   function mapPhoto(p) {
+    var url = p.url || '';
+    // The sync writes RELATIVE /local/... URLs; resolve them against the HA
+    // host, not the page origin (the loopback kiosk server 404s them).
+    if (url.charAt(0) === '/') url = HA.url + url;
     return {
-      url: p.url, date: p.date, place: p.place || '', from: p.from || null,
+      url: url, date: p.date, place: p.place || '', from: p.from || null,
       o: (p.w && p.h && p.h > p.w) ? 'p' : 'l', fav: !!p.fav, tag: p.tag || ''
     };
   }
@@ -32,15 +36,24 @@
     V.slides.start();
   }
 
+  // Loads (and at most hourly, re-loads) the manifest. A frame runs for weeks:
+  // without the freshness check the photo pool would be frozen at first load,
+  // and without the resume retry a pre-manifest 404 would stick forever.
+  var lastLoad = 0;
+  function load() {
+    if (HA.status === 'demo') { paint(); return; }
+    if (HA.photos && Date.now() - lastLoad < 3600e3) { paint(); return; }
+    lastLoad = Date.now();
+    V.slides = null;
+    V.el.innerHTML = '<div class="cl-empty">' + App.icon('photo', 44) + '<div class="serif">Loading photos\u2026</div></div>';
+    window.FRAME_PHOTOS = undefined;
+    HA.photos = null;
+    HA.loadPhotos().then(function () { if (App.current === 'photos') paint(); });
+  }
+
   App.register('photos', {
-    show: function (el) {
-      V.el = el;
-      if (HA.photos === null && HA.status !== 'demo') {
-        V.el.innerHTML = '<div class="cl-empty">' + App.icon('photo', 44) + '<div class="serif">Loading photos\u2026</div></div>';
-        HA.loadPhotos().then(function () { if (App.current === 'photos') paint(); });
-      } else paint();
-    },
-    resume: function () { if (V.slides) V.slides.start(); },
+    show: function (el) { V.el = el; load(); },
+    resume: function () { if (V.el) load(); },
     hide: function () { if (V.slides) V.slides.stop(); }
   });
 })();

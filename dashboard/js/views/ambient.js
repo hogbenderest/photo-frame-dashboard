@@ -50,8 +50,13 @@
   App.on('mode', function (m) {
     var photos = HA.photos && HA.photos.photos && HA.photos.photos.length;
     if (m === 'ambient' && !photos) {
-      // No photos yet: ambient falls back to a plain dark clock, no slideshow.
-      $('#ambient .amb-stage').innerHTML = '';
+      // No photos in the pool yet: retry the manifest (a fresh sync may have
+      // created it since the last attempt); if it lands, the next ambient
+      // entry starts the slideshow.
+      HA.loadPhotos().then(function () {
+        if (App.mode === 'ambient' && HA.photos && HA.photos.photos && HA.photos.photos.length) amb.show.start();
+      });
+      $('#ambient .amb-stage').innerHTML = ''; // plain dark clock until photos exist
     }
     if (m === 'ambient' && photos) amb.show.start();
     if (m !== 'ambient') amb.show.stop();
