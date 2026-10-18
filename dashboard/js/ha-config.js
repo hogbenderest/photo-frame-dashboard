@@ -250,7 +250,57 @@
     mail: {
       sensor: 'sensor.frame_mail_unread',
       maxSenders: 3,
-      hourly: 'Synced hourly from Gmail; the count and sender list update on the next sync.'
+      hourly: 'Synced hourly from Gmail; the count and sender list update on the next sync.',
+      // Bill heuristic: sender name matching any keyword gets a "bill" pill on
+      // the hero mail line so invoices can't hide among Google alerts.
+      billKeywords: ['bill', 'invoice', 'synergy', 'water corp', 'watercorp', 'water', 'energy', 'electric', 'origin', 'agl', 'optus', 'telstra', 'amber', 'sumo', 'medibank', 'bupa', 'rates', 'council', 'rego', 'insurance', 'bank']
+    },
+
+    // ------------------------------------------------------------ patio
+    // The fan is RF-driven via the Broadlink remote: buttons ALWAYS call these
+    // scripts; fan.patio_fan / input_boolean.patio_fan_power_state are only
+    // best-known state mirrors (no feedback from the physical fan).
+    patio: {
+      lights: [{ id: 'light.patio_nanoleaf_string_lights', name: 'String Lights', brightness: true }],
+      fan: {
+        state: 'fan.patio_fan',
+        power: 'input_boolean.patio_fan_power_state',
+        scripts: {
+          on: 'script.patio_fan_on_1',
+          off: 'script.patio_fan_off_2',
+          light: 'script.patio_fan_light',
+          low: 'script.patio_fan_speed_1',
+          medium: 'script.patio_fan_speed_2',
+          high: 'script.patio_fan_speed_3'
+        }
+      }
+    },
+
+    // ------------------------------------------------------------ frames + rooms
+    // Every frame runs the same APK; /ha.json carries {"frame": "<id>"}.
+    // Unknown or missing id falls back to 'living' (the pre-profile build
+    // deployed to the living room has no "frame" key).
+    profiles: {
+      living:    { name: 'Living Room', landing: 'home', room: 'patio',     photosManifest: '/local/frame-photos/frame-photos.js' },
+      helen_ian: { name: 'Helen + Ian', landing: 'room', room: 'helen_ian', photosManifest: '/local/frame-photos/helen_ian/frame-photos.js' },
+      alexa:     { name: 'Alexa',       landing: 'room', room: 'alexa',     photosManifest: '/local/frame-photos/alexa/frame-photos.js' },
+      kyle:      { name: 'Kyle',        landing: 'room', room: 'kyle',      photosManifest: '/local/frame-photos/kyle/frame-photos.js' },
+      marcus:    { name: 'Marcus',      landing: 'room', room: 'marcus',    photosManifest: '/local/frame-photos/marcus/frame-photos.js' },
+      connor:    { name: 'Connor',      landing: 'room', room: 'connor',    photosManifest: '/local/frame-photos/connor/frame-photos.js' },
+      study:     { name: 'Study',       landing: 'room', room: 'study',     photosManifest: '/local/frame-photos/study/frame-photos.js' }
+    },
+    rooms: {
+      patio:     { name: 'Patio', kind: 'patio' },
+      helen_ian: { name: 'Helen + Ian', aircon: 'helen_ian',
+                   lights: [{ id: 'light.bed_strip', name: 'Bed Strip', brightness: true },
+                             { id: 'light.smart_plug_20041792822229251h3948e1e91a3cd4_dnd', name: 'Bed Lamp Ian', brightness: false },
+                             { id: 'light.smart_plug_20041747068605251h3948e1e91a3dba_dnd', name: 'Bed Lamp Helen', brightness: false }],
+                   chores: ['helen', 'ian'] },
+      alexa:     { name: 'Alexa', aircon: 'alexa', lights: [{ id: 'light.alexa_lamp', name: 'Alexa Lamp', brightness: true }], chores: ['alexa'] },
+      kyle:      { name: 'Kyle', aircon: 'kyle', lights: [{ id: 'light.ikea_of_sweden_tradfri_bulb_e14_cws_globe_806lm', name: 'Sphere Light', brightness: true }], chores: ['kyle'] },
+      marcus:    { name: 'Marcus', aircon: 'marcus', lights: [], chores: ['marcus'] },
+      connor:    { name: 'Connor', aircon: 'connor', lights: [], chores: ['connor'] },
+      study:     { name: 'Study', aircon: 'study', lights: [{ id: 'light.keyboard_light_strip', name: 'Keyboard Light Strip', brightness: true }], chores: [] }
     },
 
     lists: {
@@ -326,4 +376,19 @@
 
   window.HAPEOPLE = { people: PEOPLE, family: FAMILY, byId: {} };
   PEOPLE.forEach(function (p) { window.HAPEOPLE.byId[p.id] = p; });
+
+  // Frame profile resolution: identity comes from /ha.json ("frame": "<id>").
+  // Fallback chain per the plan: missing/unknown id -> 'living'; unknown
+  // profile id -> the living profile. Views call these at render time (after
+  // HA.init has resolved ha.json), never at module scope.
+  window.HACONFIG.profileFor = function (frameId) {
+    var id = frameId || 'living';
+    return HACONFIG.profiles[id] || HACONFIG.profiles.living;
+  };
+  window.HACONFIG.frameId = 'living'; // overwritten by ha.js once ha.json resolves
+  window.HACONFIG.profile = function () { return HACONFIG.profileFor(HACONFIG.frameId); };
+  window.HACONFIG.roomFor = function (frameId) {
+    var p = HACONFIG.profileFor(frameId);
+    return HACONFIG.rooms[p.room] || null;
+  };
 })();

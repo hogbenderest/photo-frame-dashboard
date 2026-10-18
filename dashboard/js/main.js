@@ -16,6 +16,7 @@ import './views/security.js';
 import './views/cameras.js';
 import './views/watering.js';
 import './views/aircon.js';
+import './views/room.js';
 import './views/cellar.js';
 import './views/ambient.js';
 import './diag.js';

@@ -1,0 +1,10 @@
+{
+  "_comment": "Frame registry. name -> IP (adb), profile (ha-config profiles key). Per-frame HA tokens live OUTSIDE the repo at ~/.config/frame-ha/<name>.json (url, token, frame). update-frame.sh fails hard if that file is missing - it never silently redeploys the previous frame's token. Fill IPs as each frame is taken over; DHCP-reserve each unit's wlan0 MAC.",
+  "living":    { "ip": "192.168.86.197:5555", "profile": "living" },
+  "helen_ian": { "ip": "TBD", "profile": "helen_ian" },
+  "alexa":     { "ip": "TBD", "profile": "alexa" },
+  "kyle":      { "ip": "TBD", "profile": "kyle" },
+  "marcus":    { "ip": "TBD", "profile": "marcus" },
+  "connor":    { "ip": "TBD", "profile": "connor" },
+  "study":     { "ip": "TBD", "profile": "study" }
+}

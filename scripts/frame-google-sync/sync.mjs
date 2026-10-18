@@ -39,9 +39,7 @@ import path from 'node:path';
 const DIR = path.join(homedir(), '.config', 'frame-google-sync');
 const CONFIG = path.join(DIR, 'config.json');
 const TOKENS = path.join(DIR, 'tokens.json');
-const STATE = path.join(DIR, 'state.json');
 const WWW_PHOTOS = path.join(homedir(), 'ha-config', 'www', 'frame-photos');
-const MANIFEST = path.join(WWW_PHOTOS, 'frame-photos.js');
 const MAIL_SENSOR = 'sensor.frame_mail_unread';
 // Google closed the Photos Library API to personal (non-partner) apps on
 // 2025-03-31: photoslibrary.readonly 403s on albums.list/sharedAlbums.list
@@ -203,25 +201,30 @@ function perthDate(creationTime) {
   // RFC3339 UTC in; the frame shows Perth dates.
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Perth', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(creationTime));
 }
-async function syncPhotos(cfg, tok, needsReauth) {
-  await mkdir(WWW_PHOTOS, { recursive: true });
+async function syncPhotosRoom(cfg, tok, needsReauth, folderName, room) {
+  // Per-room state + manifest. Living keeps the legacy un-suffixed paths so
+  // the deployed frame never breaks; other rooms use www/frame-photos/<room>/.
+  const suffix = room === 'living' ? '' : '/' + room;
+  const ROOM_DIR = WWW_PHOTOS + suffix;
+  const MANIFEST = path.join(ROOM_DIR, 'frame-photos.js');
+  const STATE = path.join(DIR, 'state-' + room + '.json');
+  await mkdir(ROOM_DIR, { recursive: true });
   const state = (await readJson(STATE)) || { synced: {} };   // driveFileId -> {file, date, place}
-  const folderName = cfg.frame_folder || cfg.frame_album || 'Frame Photos';
   if (needsReauth) {
     if (await exists(MANIFEST)) {
       const src = await readFile(MANIFEST, 'utf8');
       await writeFile(MANIFEST, src.replace(/\);?\s*$/, '').replace('window.FRAME_PHOTOS = ', 'window.FRAME_PHOTOS_REAUTH = ') + '\nwindow.FRAME_PHOTOS = Object.assign({}, window.FRAME_PHOTOS_REAUTH, { needs_reauth: true });');
     }
-    console.error('photos: needs reauth; last manifest kept with needs_reauth flag');
+    console.error('photos[' + room + ']: needs reauth; last manifest kept with needs_reauth flag');
     return;
   }
   const folderId = await findFrameFolder(tok, folderName);
   if (!folderId) {
-    console.error('photos: no Drive folder named "' + folderName + '" (owned or shared with 2lawlerst@gmail.com). Create it and drop photos in.');
+    console.error('photos[' + room + ']: no Drive folder named "' + folderName + '" (owned or shared with 2lawlerst@gmail.com). Create it and drop photos in.');
     if (!await exists(MANIFEST)) {
       await writeFile(MANIFEST, 'window.FRAME_PHOTOS = { photos: [], updated_at: ' + JSON.stringify(new Date().toISOString()) + ' };\n');
     }
-    return;
+    return; // one missing room must not block the others
   }
   const images = await listFolderImages(tok, folderId);
   let downloaded = 0;
@@ -231,34 +234,35 @@ async function syncPhotos(cfg, tok, needsReauth) {
     if (!dl.ok) continue; // individual failure: skip, next sync retries
     const buf = Buffer.from(await dl.arrayBuffer());
     const file = f.id + '.jpg';
-    await writeFile(path.join(WWW_PHOTOS, file), buf);
-    // normalize to JPEG and cap the longest edge (Drive originals can be huge;
-    // the frame has 512MB RAM and an A7 to chew on)
-    try { execFileSync('sips', ['-s', 'format', 'jpeg', '-Z', String(cfg.photo_width || 1280), path.join(WWW_PHOTOS, file), '--out', path.join(WWW_PHOTOS, file)], { stdio: 'ignore' }); } catch { }
+    await writeFile(path.join(ROOM_DIR, file), buf);
+    try { execFileSync('sips', ['-s', 'format', 'jpeg', '-Z', String(cfg.photo_width || 1280), path.join(ROOM_DIR, file), '--out', path.join(ROOM_DIR, file)], { stdio: 'ignore' }); } catch { }
     state.synced[f.id] = { file, date: perthDate(f.createdTime || f.modifiedTime || Date.now()), place: folderName };
     downloaded++;
   }
-  // rotation cap: newest N by date string, oldest deleted from disk + state
   const entries = Object.entries(state.synced);
   if (entries.length > (cfg.max_photos || 200)) {
     entries.sort((a, b) => (a[1].date < b[1].date ? -1 : 1));
     const drop = entries.slice(0, entries.length - (cfg.max_photos || 200));
     for (const [id, rec] of drop) {
-      await rm(path.join(WWW_PHOTOS, rec.file), { force: true });
+      await rm(path.join(ROOM_DIR, rec.file), { force: true });
       delete state.synced[id];
     }
   }
   await writeJson(STATE, state);
-  const v = Date.now();
-  // No per-photo ?v=: filenames embed the unique Drive file id, so URLs are
-  // already immutable. The WebView caches each photo once for its 31-day
-  // window; only the manifest URL (loader-generated) carries a buster.
-  const photos = Object.values(state.synced).map(rec => ({ url: '/local/frame-photos/' + rec.file, date: rec.date, place: rec.place }));
+  const photos = Object.values(state.synced).map(rec => ({ url: '/local/frame-photos' + suffix + '/' + rec.file, date: rec.date, place: rec.place }));
   await writeFile(MANIFEST, 'window.FRAME_PHOTOS = ' + JSON.stringify({ photos, updated_at: new Date().toISOString() }) + ';\n');
-  console.log('photos: ' + images.length + ' image(s) in "' + folderName + '", ' + downloaded + ' downloaded, ' + photos.length + ' in manifest');
+  console.log('photos[' + room + ']: ' + images.length + ' image(s) in "' + folderName + '", ' + downloaded + ' downloaded, ' + photos.length + ' in manifest');
 }
 
-// ---------------------------------------------------------------- driver
+async function syncPhotos(cfg, tok, needsReauth) {
+  // folders: { "Frame Photos": "living", "Frame Photos Alexa": "alexa", ... }
+  // Missing folders log + skip; a legacy single-folder config still works.
+  const folders = cfg.folders || { [cfg.frame_folder || cfg.frame_album || 'Frame Photos']: 'living' };
+  for (const [name, room] of Object.entries(folders)) {
+    await syncPhotosRoom(cfg, tok, needsReauth, name, room);
+  }
+}
+
 async function sync(cfg) {
   const tokens = await readJson(TOKENS);
   const tok = await accessToken(cfg, tokens || {});
@@ -275,11 +279,21 @@ async function sync(cfg) {
 
 async function status() {
   const tokens = await readJson(TOKENS);
-  const state = await readJson(STATE);
-  const files = await readdir(WWW_PHOTOS).catch(() => []);
   console.log('tokens: ' + (tokens ? 'present (access expires ' + (tokens.expires_at ? new Date(tokens.expires_at).toISOString() : '?') + ')' : 'NONE - run authorize'));
-  console.log('photos tracked: ' + (state ? Object.keys(state.synced).length : 0) + ', files in www/frame-photos: ' + files.length);
-  console.log('manifest: ' + (await exists(MANIFEST) ? 'present' : 'missing'));
+  const { stat: statFn } = await import('node:fs/promises');
+  const entries = await readdir(WWW_PHOTOS).catch(() => []);
+  const rooms = [];
+  for (const e of entries) {
+    try { if ((await statFn(path.join(WWW_PHOTOS, e))).isDirectory()) rooms.push(e); } catch { }
+  }
+  for (const room of rooms.length ? rooms : [null]) {
+    const rn = room || 'living';
+    const suffix = room ? '/' + room : '';
+    const st = await readJson(path.join(DIR, 'state-' + rn + '.json'));
+    let n = 0;
+    try { n = (await readdir(WWW_PHOTOS + suffix)).filter(f => f.endsWith('.jpg')).length; } catch { }
+    console.log('photos[' + rn + ']: tracked ' + (st ? Object.keys(st.synced).length : 0) + ', jpg files ' + n);
+  }
 }
 
 main().catch(e => { console.error(e && e.stack || e); process.exit(1); });

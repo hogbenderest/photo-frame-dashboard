@@ -162,14 +162,20 @@
 
   // Photos manifest: the sync writes a JS file (window.FRAME_PHOTOS) because a
   // cross-origin <script> loads without CORS where a fetch() of JSON would not.
+  // ---------------------------------------------------------------- photos
+  // The manifest path is PROFILE-DRIVEN (per-frame Drive folder): living keeps
+  // the legacy un-prefixed path; every other frame uses /<room>/. Resolved at
+  // call time so it is always correct after ha.json lands (loadPhotos can only
+  // succeed after HA.url exists, which is set in the same resolve step).
   HA.loadPhotos = function () {
     if (HA.status === 'demo') { HA.photos = window.DEMO_PAYLOADS.photos; return Promise.resolve(HA.photos); }
     if (!HA.url) return Promise.resolve(null); // no connection yet: skip the <script> probe
+    var manifest = (C.profile && C.profile().photosManifest) || C.photos.manifestPath;
     return new Promise(function (resolve) {
       var s = document.createElement('script');
       var done = false;
       function finish(v) { if (!done) { done = true; HA.photos = v; resolve(v); } }
-      s.src = HA.url + C.photos.manifestPath + '?v=' + Date.now();
+      s.src = HA.url + manifest + '?v=' + Date.now();
       s.onload = function () { finish(window.FRAME_PHOTOS || null); };
       s.onerror = function () { finish(null); };
       setTimeout(function () { finish(HA.photos || null); }, 4000);
@@ -298,6 +304,14 @@
       if (!cfg || !cfg.url || !cfg.token) return bootDemo();
       HA.url = cfg.url.replace(/\/$/, '');
       HA.token = cfg.token;
+      if (cfg.frame && typeof cfg.frame === 'string') C.frameId = cfg.frame; // profile identity
+      // Landing correction: App.start may have navigated before ha.json
+      // resolved (defaulting to 'living'). If this frame's profile says the
+      // landing view differs and the user hasn't navigated yet, honor it.
+      var prof = C.profile();
+      if (prof.landing !== 'home' && !location.hash && (App.current === 'home' || App.current === null)) {
+        App.go(prof.landing);
+      }
       connect();
     }).catch(function () { bootDemo(); });
 

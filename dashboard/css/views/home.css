@@ -1,20 +1,25 @@
-/* Today view. Layout: top strip (clock / weather / presence), then attention hero
-   + status cards, with the HA connection strip at the bottom. */
+/* Today view. Top strip: clock / weather / tracked presence. Main: Coming Up
+   hero (events + mail) beside warning strip + 2x3 cards + connection strip. */
 .home {
   height: 100%;
   display: grid;
-  grid-template-rows: 218px 1fr 40px;
-  grid-template-columns: 360px 1fr 1fr;
-  gap: var(--gap);
-  padding: var(--pad);
+  grid-template-rows: 208px 1fr 32px;
+  grid-template-columns: 340px 1fr 1fr;
+  gap: 14px;
+  padding: 20px;
 }
-.h-clock { grid-column: 1; border-right: 2px solid var(--line); padding-right: 24px; display: flex; flex-direction: column; justify-content: center; cursor: pointer; }
-.h-time { font-size: 118px; font-weight: 800; font-stretch: 62%; line-height: .9; letter-spacing: -0.02em; }
-.h-ampm { font-size: 40px; font-weight: 800; font-stretch: 70%; margin-left: 8px; }
-.h-date { margin-top: 10px; font-size: var(--fs-l); color: var(--ink-2); }
-.h-weather { grid-column: 2; display: flex; flex-direction: column; }
+.h-clock { grid-column: 1; border-right: 2px solid var(--line); padding-right: 20px; display: flex; flex-direction: column; justify-content: center; cursor: pointer; }
+.h-time { font-size: 108px; font-weight: 800; font-stretch: 62%; line-height: .9; letter-spacing: -0.02em; }
+.h-ampm { font-size: 36px; font-weight: 800; font-stretch: 70%; margin-left: 6px; }
+.h-date { margin-top: 8px; font-size: var(--fs-l); color: var(--ink-2); }
+.h-weather { grid-column: 2; display: flex; flex-direction: column; overflow: hidden; }
 .h-presence { grid-column: 3; display: flex; flex-direction: column; justify-content: center; gap: 10px; }
-.h-main { grid-column: 1 / -1; grid-row: 2; display: grid; grid-template-columns: 420px 1fr; gap: var(--gap); }
+.h-main { grid-column: 1 / -1; grid-row: 2; display: grid; grid-template-columns: 460px 1fr; gap: 14px; min-height: 0; }
+.h-right { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+.h-warn-slot { flex: none; }
+.h-warnstrip { display: flex; flex-wrap: wrap; gap: 8px; }
+.h-warnpill { display: flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px; background: rgba(var(--alert-rgb), .12); border: 2px solid var(--alert); color: var(--alert); font-size: var(--fs-min); font-weight: 800; cursor: pointer; }
+.h-warnpill i { width: 10px; height: 10px; border-radius: 50%; background: var(--alert); animation: pulse 1.2s infinite; }
 .h-side { grid-column: 1 / -1; grid-row: 3; }
 .h-conn { display: flex; align-items: center; gap: 8px; font-size: var(--fs-min); font-weight: 700; color: var(--mute); letter-spacing: .05em; text-transform: uppercase; }
 .h-conn.is-warn { color: var(--amber); }
@@ -22,19 +27,19 @@
 .h-conn.is-warn .i { color: var(--amber); }
 
 /* weather block */
-.h-wx-top { display: flex; align-items: center; gap: 16px; }
+.h-wx-top { display: flex; align-items: center; gap: 14px; }
 .h-wx-icon { color: var(--ink); display: flex; }
-.h-wx-temp { font-size: var(--fs-xl); font-weight: 800; font-stretch: 62%; }
+.h-wx-temp { font-size: 48px; font-weight: 800; font-stretch: 62%; }
 .h-wx-meta b { display: block; font-size: var(--fs-m); }
 .h-wx-meta span { font-size: var(--fs-min); color: var(--mute); font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
-.h-wx-say { margin-top: 8px; font-size: var(--fs-body); }
+.h-wx-say { margin-top: 4px; font-size: 18px; }
 .h-wx-say b { font-weight: 800; }
-.h-wx-hours { display: flex; gap: 4px; margin-top: 14px; }
-.h-hr { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 0 6px; border-radius: var(--r-s); background: var(--card); border: 2px solid transparent; }
+.h-wx-hours { display: flex; gap: 4px; margin-top: 10px; }
+.h-hr { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 0 4px; border-radius: var(--r-s); background: var(--card); border: 2px solid transparent; }
 .h-hr.is-wet { border-color: rgba(var(--alert-rgb), .35); }
 .h-hr-l { font-size: var(--fs-min); font-weight: 700; color: var(--mute); letter-spacing: .06em; }
-.h-hr b { font-size: var(--fs-m); font-weight: 800; font-stretch: 70%; }
-.h-sun { margin-top: 10px; font-size: var(--fs-min); font-weight: 700; color: var(--mute); letter-spacing: .06em; text-transform: uppercase; display: flex; align-items: center; gap: 6px; }
+.h-hr b { font-size: 20px; font-weight: 800; font-stretch: 70%; }
+.h-sun { margin-top: 8px; font-size: var(--fs-min); font-weight: 700; color: var(--mute); letter-spacing: .06em; text-transform: uppercase; display: flex; align-items: center; gap: 6px; }
 
 /* presence */
 .h-who { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: var(--r-s); background: var(--card); border-left: 5px solid var(--c); color: var(--ink); }
@@ -42,38 +47,47 @@
 .h-who b { font-size: var(--fs-body); display: block; }
 .h-who small { font-size: var(--fs-min); color: var(--mute); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
 
-/* hero */
-.h-hero { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 24px 28px; border-radius: var(--r); border: 2px solid var(--ink); background: var(--card); cursor: pointer; text-align: left; width: 100%; }
-.h-hero .i { flex: none; }
-.h-hero--empty { height: 100%; }
-.h-hero-title { font-size: var(--fs-l); line-height: 1.05; margin-top: 10px; }
-.h-hero-meta { margin-top: 10px; font-size: var(--fs-body); color: var(--ink-2); }
-.h-hero--alert { border-color: var(--alert); background: rgba(var(--alert-rgb), .08); }
-.h-hero--alert .i { color: var(--alert); }
+/* Coming Up hero */
+.h-hero2 { border: 2px solid var(--line); border-radius: var(--r); background: var(--card); padding: 18px 22px; display: flex; flex-direction: column; justify-content: space-between; gap: 10px; overflow: hidden; }
+.cu-big .label { margin-bottom: 6px; }
+.cu-title { font-size: 34px; line-height: 1.08; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.cu-big.is-mute .serif { font-size: 30px; color: var(--mute); }
+.cu-big small { display: block; margin-top: 6px; font-size: var(--fs-body); color: var(--mute); font-weight: 700; }
+.cu-more { margin-top: 10px; display: flex; flex-direction: column; gap: 4px; border-top: 1px solid var(--line); padding-top: 10px; }
+.cu-more span { font-size: 17px; font-weight: 700; color: var(--ink-2); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.cu-more b { color: var(--ink); margin-right: 6px; }
+.cu-mail { display: flex; align-items: center; gap: 10px; border: none; background: rgba(var(--ink-rgb), .05); padding: 10px 14px; border-radius: var(--r-s); font-size: var(--fs-body); text-align: left; cursor: pointer; }
+.cu-mail span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: 700; }
+.cu-mail.is-ok { color: var(--ok); cursor: default; }
+.cu-mail.is-ok .i { color: var(--ok); }
+.cu-mail.is-warn .i, .cu-mail.is-warn .num { color: var(--amber); }
+.cu-mail.is-mute { color: var(--mute); cursor: default; }
+.cu-mail .i { color: var(--mute); flex: none; }
+.cu-billpill { display: inline-block; font-style: normal; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; background: var(--alert); color: #fff; border-radius: 999px; padding: 2px 10px; margin-left: 8px; }
+.cl-mail-item.is-bill { border-color: var(--alert); }
 
 /* status cards: 2 columns x 3 rows, compact */
-.h-cards { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(3, 1fr); gap: 12px; }
-.h-card { padding: 12px 18px; border-radius: var(--r); border: 2px solid var(--line); background: var(--card); cursor: pointer; text-align: left; display: flex; flex-direction: column; justify-content: center; gap: 4px; overflow: hidden; }
+.h-cards { flex: 1; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(3, 1fr); gap: 12px; min-height: 0; }
+.h-card { padding: 10px 16px; border-radius: var(--r); border: 2px solid var(--line); background: var(--card); cursor: pointer; text-align: left; display: flex; flex-direction: column; justify-content: center; gap: 4px; overflow: hidden; }
 .h-card:active { background: var(--paper-2); }
 .h-mode-big { display: flex; align-items: center; gap: 10px; font-size: var(--fs-m); }
 .h-mode-big .serif { font-size: 30px; }
 .h-mode-sub { font-size: var(--fs-min); color: var(--mute); font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
-.h-retic-row { display: flex; align-items: center; gap: 8px; font-size: var(--fs-body); }
+.h-retic-row { display: flex; align-items: center; gap: 8px; font-size: 18px; }
 .h-retic-row .i { flex: none; }
 .h-retic-row.sub { font-size: var(--fs-min); color: var(--mute); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
 .h-solar-big { font-size: 40px; font-weight: 800; font-stretch: 62%; line-height: 1.1; }
 .h-lights-list { font-size: var(--fs-min); color: var(--mute); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 
-/* family card: mail + next event rows */
-.h-family { justify-content: space-around; }
+/* patio card */
+.h-patio-row { display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 700; }
+.h-patio-row.is-on .i { color: var(--amber); }
+.h-patio-row small { display: block; font-size: var(--fs-min); color: var(--mute); text-transform: uppercase; letter-spacing: .04em; }
+.h-patio-stale { font-size: 12px; color: var(--mute); font-weight: 700; }
+
+/* family card legacy styles kept for mail sheet */
 .fam-row { display: flex; align-items: center; gap: 10px; border: none; background: none; padding: 0; text-align: left; cursor: pointer; font-size: var(--fs-body); }
 .fam-row .i { color: var(--mute); flex: none; }
-.fam-row span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: 700; }
-.fam-row span small { display: block; font-size: var(--fs-min); color: var(--mute); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
-.fam-row.is-ok .i { color: var(--ok); }
-.fam-row.is-warn .i { color: var(--amber); }
-.fam-row.is-warn .num { color: var(--amber); }
-.fam-row.is-mute { color: var(--mute); cursor: default; }
 .cl-mail { max-height: 420px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 6px 0 10px; }
 .cl-mail-item { display: block; }
 .cl-mail-item .ch-head { font-size: var(--fs-min); font-weight: 800; text-transform: uppercase; letter-spacing: .05em; margin-right: auto; }

@@ -22,6 +22,7 @@
   <link rel="stylesheet" href="css/views/cameras.css">
   <link rel="stylesheet" href="css/views/watering.css">
   <link rel="stylesheet" href="css/views/aircon.css">
+  <link rel="stylesheet" href="css/views/room.css">
   <link rel="stylesheet" href="css/views/cellar.css">
   <link rel="stylesheet" href="css/views/ambient.css">
 </head>
@@ -38,6 +39,7 @@
       <button class="rail-item" data-go="cameras"><svg class="i" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3"/></svg><span>Cameras</span></button>
       <button class="rail-item" data-go="watering"><svg class="i" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3s6.5 7.2 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 10.2 12 3 12 3z"/></svg><span>Watering</span></button>
       <button class="rail-item" data-go="aircon"><svg class="i" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14V5a2 2 0 0 0-4 0v9a4 4 0 1 0 4 0z"/><path d="M17 8h4M17 12h4"/></svg><span>Aircon</span></button>
+      <button class="rail-item" data-go="room"><svg class="i" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg><span>Room</span></button>
       <button class="rail-item" data-go="cellar"><svg class="i" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h10l-.7 8.5a4.3 4.3 0 0 1-8.6 0z"/><path d="M7 3H4.5a3 3 0 0 0 3 3M17 3h2.5a3 3 0 0 1-3 3"/><path d="M12 16v3M8.5 21h7"/></svg><span>Cellar</span></button>
       <button class="rail-clock" id="railClock" aria-label="Clock — press and hold for panel controls"></button>
     </nav>
@@ -53,6 +55,7 @@
       <section class="view" id="view-cameras" data-view="cameras"></section>
       <section class="view" id="view-watering" data-view="watering"></section>
       <section class="view" id="view-aircon" data-view="aircon"></section>
+      <section class="view" id="view-room" data-view="room"></section>
       <section class="view" id="view-cellar" data-view="cellar"></section>
       <div class="banners" id="banners"></div>
     </main>

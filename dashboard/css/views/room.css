@@ -1,0 +1,22 @@
+/* Room: profile-driven context view (Patio / bedroom zones). */
+.rm-wrap { height: 100%; padding: var(--pad); display: flex; flex-direction: column; gap: 14px; overflow: hidden; }
+.rm-title { font-size: var(--fs-l); line-height: 1; }
+.rm-grid { flex: 1; display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+.rm-ac { border: 2px solid var(--line); border-radius: var(--r); background: var(--card); padding: 18px 24px; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; cursor: pointer; text-align: left; }
+.rm-ac.is-on { border-color: var(--amber); background: rgba(var(--amber-rgb), .08); }
+.rm-ac.is-cooling { border-color: var(--ok); background: rgba(0 163 108 / .08); }
+.rm-ac.is-heating { border-color: var(--alert); background: rgba(var(--alert-rgb), .07); }
+.rm-ac-temp { font-size: 72px; font-weight: 800; font-stretch: 62%; line-height: 1; }
+.rm-ac-tgt { font-size: var(--fs-body); font-weight: 700; color: var(--ink-2); }
+.rm-ac-name { font-size: var(--fs-min); font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--mute); }
+.rm-sec { border: 2px solid var(--line); border-radius: var(--r); background: var(--card); padding: 14px 18px; }
+.rm-sec small { color: var(--mute); font-weight: 700; }
+.rm-sec--empty { color: var(--mute); }
+.rm-lights { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+.rm-lights .tile { min-width: 150px; max-width: 220px; }
+.rm-chores { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+.rm-chore { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 999px; border: 2px solid var(--line); background: var(--paper); cursor: pointer; text-align: left; }
+.rm-chore b { font-size: 18px; font-weight: 800; }
+.rm-chore .num { font-size: 24px; font-weight: 800; margin-left: auto; }
+.rm-chore small { font-size: var(--fs-min); color: var(--mute); font-weight: 700; text-transform: uppercase; }
+.rm-fanstate { margin-top: 8px; font-size: 17px; font-weight: 800; color: var(--ink-2); }

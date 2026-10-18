@@ -296,7 +296,9 @@
     });
     document.addEventListener('pointerdown', App.resetIdle, true);
     window.addEventListener('hashchange', function () { App.go(location.hash.slice(1)); });
-    App.go(location.hash.slice(1) || 'home');
+    // Landing view is profile-driven: bedroom frames open on their Room.
+    var landing = (HACONFIG.profile && HACONFIG.profile().landing) || 'home';
+    App.go(location.hash.slice(1) || landing);
     tick();
     setInterval(tick, 1000);
     App.emit('ready');

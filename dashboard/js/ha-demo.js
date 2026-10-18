@@ -94,8 +94,10 @@
   var soils = [['sensor.letterbox_soil_moisture', 36.7, 'Letterbox Lawn'], ['sensor.driveway_soil_moisture', 28.9, 'Driveway Lawn'], ['sensor.back_garden_soil_moisture_soil_moisture', 77.7, 'Back Garden'], ['sensor.patio_tomato_plant_soil_moisture', 80.4, 'Patio Tomato'], ['sensor.balcony_bay_leaf_soil_moisture_soil_moisture', 12.7, 'Balcony Bay Leaf'], ['sensor.palm_pot_plant_soil_moisture_soil_moisture', 62.3, 'Palm Pot'], ['sensor.third_reality_inc_3rsm0347z_soil_moisture', 91.4, 'Plant Meter 1'], ['sensor.landing_balcony_plants_soil_moisture', 68.9, 'Plant Meter 2'], ['sensor.temporary_device_2_soil_moisture', 86.4, 'Plant Meter 3']];
   soils.forEach(function (s) { S(st(s[0], String(s[1]), { unit_of_measurement: '%', friendly_name: s[2] })); });
 
-  // aircon (demo states mirror the live AirTouch shapes)
-  S(st('input_number.aircon_whole_house_target', '21.0', { min: 16, max: 30, step: 1, friendly_name: 'Aircon Whole House Target' }));
+  // patio (demo: lights + RF fan mirrors)
+  S(st('input_boolean.patio_fan_power_state', 'off', { friendly_name: 'Patio Fan Power State' }));
+
+  // aircon (demo states mirror the live AirTouch shapes)  S(st('input_number.aircon_whole_house_target', '21.0', { min: 16, max: 30, step: 1, friendly_name: 'Aircon Whole House Target' }));
   S(st('climate.ac_0', 'off', { hvac_modes: ['off', 'auto', 'cool', 'dry', 'fan_only', 'heat'], fan_modes: ['low', 'medium', 'high', 'auto'], current_temperature: 27, temperature: 23, fan_mode: 'low', friendly_name: 'Main Unit' }));
   S(st('climate.ac_1', 'off', { hvac_modes: ['off', 'auto', 'cool', 'dry', 'fan_only', 'heat'], fan_modes: ['low', 'medium', 'high', 'auto'], current_temperature: 26, temperature: 22, fan_mode: 'auto', friendly_name: 'Downstairs' }));
   [['helen_ian', 22.5, 21, 50], ['connor', 23, 21, 40], ['dining', 24, 22, 60], ['kitchen', 25, 22, 55], ['study', 23.5, 21, 45], ['upstairs', 26, 22, 35],
