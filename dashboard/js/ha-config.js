@@ -229,6 +229,27 @@
       }
     },
 
+    // -------------------------------------------------------------- music
+    // Spotify on the Sonos trio: Sonos plays spotify:* URIs natively through
+    // the Sonos integration (the Spotify service is linked in the Sonos app;
+    // verified live 2026-10-18: playlist URI -> full queue). The HA Spotify
+    // integration is NOT involved in playback (it cannot target Sonos at all).
+    // Presets are plain-text rows in the HA "Music Presets" to-do list, edited
+    // from any phone via the HA app; tick a row on the phone to hide it from
+    // the frame. Two row forms are accepted:
+    //   Dinner Jazz | spotify:playlist:5xddIVAtLrZKtt4YGLM1SQ   (URI form)
+    //   Deep Focus  | https://open.spotify.com/playlist/37i9dQZF1DX0SM0LYsmbMT
+    // Unparseable rows are counted on the view, never rendered as tiles.
+    music: {
+      presets: 'todo.music_presets',
+      defaultSpeaker: 'media_player.sonos_move',
+      speakers: [
+        { id: 'media_player.sonos_move',  name: 'Sonos Move',  room: 'Living Room' },
+        { id: 'media_player.family_room', name: 'Family Room', room: 'Family Room' },
+        { id: 'media_player.dining_room',  name: 'Dining Room', room: 'Dining Room' }
+      ]
+    },
+
     // -------------------------------------------------------------- family views
     calendar: {
       // calendar.opensprinkler_schedule is real data but deliberately excluded
@@ -364,6 +385,8 @@
         add(AC.zones[k].climate);
         add(AC.zones[k].damper);
       });
+      this.music.speakers.forEach(function (s) { add(s.id); });
+      add(this.music.presets);
       this.calendar.entities.forEach(function (e) { add(e.id); });
       this.lists.lists.forEach(function (l) { add(l.id); });
       add(this.mail.sensor);

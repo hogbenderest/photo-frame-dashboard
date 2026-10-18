@@ -360,6 +360,27 @@ flag serves the loopback HTTP origin.
 - Also fixed en route: an `allEntities()` closure referenced an undefined `C` inside
   ha-config.js (threw on-boot, killing the whole state subscription until corrected).
 
+## Session 11 (2026-10-18): Photos tab made actually usable
+
+- User verdict: "can't cycle through photos or anything" - correct. The view had zero manual
+  controls (the engine's prev/next were never wired), a 60 s idle timer yanked the user back
+  to Today after ~4 photos, and photos uploaded today showed the caption "0 years ago today".
+- **Tap zones added**: left third = previous, right third = next, centre = pause/resume
+  (sticky across prev/next), position counter "n / total" top-right, "Paused" pill top-left.
+  Real touch verified on-frame: input taps cycle 1 -> 2 -> 3 -> 2; pause toggles on/off.
+- **Idle exemption**: photos is now exempt from the 60 s idle-return-home (ambient at 120 s
+  unchanged - it IS the photo display). Verified with fast-idle: 11 s past the idle-home point
+  still on photos in day mode; ambient engaged at the ambient point; tap returned to day.
+- **Caption fix**: on-this-day with years=0 now says "Today" (was "0 years ago today").
+- **Position formula bug caught on-frame**: pos = history.length + 1 (count is cumulative,
+  not a position). First formula (count - history) displayed 1,1,2 for 1,2,1 - the DevTools
+  sequence exposed it before shipping.
+- **Failed-load retry hardened**: a manifest load failure no longer sets the 1 h freshness
+  stamp, so the next tab open retries instead of showing "not set up" for an hour.
+- Test hygiene note: synthetic dispatchEvent clicks do not reset the idle timer (no pointerdown),
+  so long eval sequences on the frame drift into ambient mode mid-test and contaminate results;
+  reset idle in the same eval that sets fast-idle values.
+
 ## Open questions
 
 - Why did the frame drop off USB mid-session? (FOTA reboot suspected but unverified - check uptime and Frameo version when it returns.)

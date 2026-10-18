@@ -41,7 +41,9 @@ Security model:
   token (Profile -> Security -> Long-Lived Access Tokens) and the user has no other rights.
 - Service calls the dashboard can make: lights, cover open/close/stop (garage), input_boolean
   (guest mode, patio hold), script.turn_on (house modes, retic frame test scripts, stop all,
-  rain delay), todo add/update/remove, calendar read, camera_proxy read, wine REST read.
+  rain delay), todo add/update/remove, calendar read, camera_proxy read, wine REST read,
+  and media_player play_media / play-pause / next / previous / volume_set / volume_mute on
+  the Sonos trio (blast radius: anyone with the frame can control household audio).
   Sirens are display-only. No lock entities exist in this house.
 
 ## Setup checklist (owner actions)
@@ -85,6 +87,15 @@ Each step has an undo. Do them in this order.
    (service calls, camera stills, calendar, wine) fails at the CORS preflight with 403.
    Symptom on the frame: `net::ERR_FAILED` on /api/* fetches in the DevTools probe.
    *Undo:* remove the origin in the same UI.
+   3b. **Music Presets to-do helper** (MCP cannot create to-do lists; UI only, like the
+   chore lists). Settings -> Devices & Services -> Helpers -> Create Helper -> **Local to-do
+   list**, name it exactly `Music Presets` (entity lands as `todo.music_presets`). Then add
+   preset rows from any phone, one per playlist: `Name | spotify:playlist:ID` (URI form) or
+   `Name | https://open.spotify.com/playlist/ID` (link form). Tick a row to hide it from the
+   frame. Sonos plays these natively through the Sonos integration; no Spotify integration is
+   involved in playback. Spotify Premium IS required for the Sonos-Spotify linkage to work
+   with saved playlists on the family account.
+   *Undo:* delete the helper.
 4. **Google Calendar** (configured 2026-10-18: integration live, all four entities wired)
    If you add more calendars later, add their entity IDs + colours to `ha-config.js` ->
    `calendar.entities` (`strip: false` keeps one off the Today next-event card). No attendee
@@ -147,6 +158,7 @@ inventory and rack (47/48 slots restored).
 | Cameras | 7 `camera.*` + their event sensors; stills via `/api/camera_proxy` |
 | Watering | program running, next/last run, rain delay pair, paused, weather restriction, seasonal level, patio hold, heat boost timer, pump running/enabled, 7 station pairs + 2 patio valve switches, 9 soil moisture sensors |
 | Aircon | `input_number.aircon_whole_house_target`, `climate.ac_0`/`ac_1` + 10 zone climates + 10 dampers (mirrors the HA "Aircon" dashboard; whole-house only sets the helper - the user's automation fans it out) |
+| Music | `media_player.sonos_move` (default target), `media_player.family_room`, `media_player.dining_room`, `todo.music_presets` (preset rows: `Name \| spotify:playlist:ID`) |
 | Cellar | `sensor.cork_dork_*` (4), cellar door, cellar light, 2 battery sensors; REST `/api/wine_cellar/wines` |
 | Calendar | `calendar.opensprinkler_schedule` + Google calendars once configured; REST `/api/calendars/<id>` |
 | Chores | `todo.chores_ian/helen/marcus/alexa/connor/kyle/himack` |
@@ -244,3 +256,18 @@ node scripts/frame-devtools.mjs          # reload + capture console/network/stat
    resume(), or it looks dead on entry. All views now repaint/restart on resume.
 12. The frame *is* being touched by household members during testing - assume non-deterministic
    navigation state; always read `location.hash`/`App.current` before diagnosing "wrong view".
+13. **subscribe_entities `-` is attribute removal, not entity removal (fixed 2026-10-18)**:
+   HA 2026.10 change diffs send `{"+": {s, lc, a:{...}}, "-": {a: [removed-attr, ...]}}` in ONE
+   message (captured on-frame during the Music view live test). The old handler deleted the
+   whole stored entity whenever `-` appeared and dropped the paired `+`, so every transition
+   that removes attributes (Sonos playing -> idle is a heavy case) left a state-null stub
+   that rendered as "Unreachable" until the next reconnect. If a view shows a known-live
+   entity as Unreachable after a state transition, check this merge path in `ha.js` first.
+14. **Sonos Spotify mechanics (verified live 2026-10-18)**: `media_player.play_media` with a
+   `spotify:playlist:...` URI loads the full queue on a Sonos speaker through the Sonos
+   integration alone (Spotify service must be linked in the Sonos app), but a PAUSED speaker
+   does not auto-start - always follow `play_media` with `media_player.media_play`. The HA
+   Spotify integration cannot target Sonos at all (docs: "Unsupported devices"); it is only
+   useful for the account entity and non-Sonos Spotify Connect targets. `sonos.snapshot`/
+   `restore` cannot resurrect a paused Spotify Connect session (x-sonos-vli URIs are
+   ephemeral): snapshot/restore for live tests, but expect to hand-back volume.

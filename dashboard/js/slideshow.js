@@ -33,7 +33,9 @@
     var d = parseDate(p), now = App.now();
     var years = now.getFullYear() - d.getFullYear();
     var onThisDay = d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
-    var kicker = onThisDay ? years + (years === 1 ? ' year' : ' years') + ' ago today' : (years > 0 ? years + (years === 1 ? ' year ago' : ' years ago') : 'This year');
+    var kicker = onThisDay
+      ? (years === 0 ? 'Today' : years + (years === 1 ? ' year' : ' years') + ' ago today')
+      : (years > 0 ? years + (years === 1 ? ' year ago' : ' years ago') : 'This year');
     return {
       date: App.fmt.month(d) + ' ' + d.getDate() + ', ' + d.getFullYear(),
       monthYear: App.fmt.month(d) + ' ' + d.getFullYear(),

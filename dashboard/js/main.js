@@ -12,6 +12,7 @@ import './views/chores.js';
 import './views/lists.js';
 import './views/photos.js';
 import './views/lights.js';
+import './views/music.js';
 import './views/security.js';
 import './views/cameras.js';
 import './views/watering.js';

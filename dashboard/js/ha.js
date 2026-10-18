@@ -255,9 +255,21 @@
         var changes = m.event.a || m.event.c; // "a": initial snapshot; "c": diffs
         for (var id in changes) {
           var d = changes[id];
-          if (!m.event.a && d['-']) { delete HA.states[id]; touch(id); continue; }
-          var val = m.event.a ? d : d['+'];
-          if (val) { applyCompact(id, val); touch(id); }
+          if (m.event.a) { if (d) applyCompact(id, d); touch(id); continue; }
+          // Change diff, HA 2026.10 compact format (captured live on-frame
+          // 2026-10-18): d["+"] = {s, lu, lc, a:{...}} carries the new state
+          // and added/changed attributes; d["-"] = {a: [name, ...]} lists
+          // REMOVED ATTRIBUTES. A "-" key is NOT whole-entity removal: the
+          // previous handler deleted the entity whenever "-" appeared, which
+          // also dropped the paired "+" (the new state) - any transition that
+          // removes attributes (e.g. playing -> idle) left the entity as a
+          // state-null stub and the view showed a live speaker as Unreachable.
+          if (d === '-') { delete HA.states[id]; touch(id); continue; } // entity removal form
+          var add = d['+'];
+          var rem = d['-'];
+          if (add) applyCompact(id, add);
+          if (rem && rem.a && HA.states[id]) rem.a.forEach(function (k) { delete HA.states[id].attributes[k]; });
+          if (add || rem) touch(id);
         }
       }
     };

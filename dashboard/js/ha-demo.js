@@ -121,6 +121,19 @@
     S(st('cover.' + z[0] + '_damper', 'open', { current_position: z[3], device_class: 'damper', friendly_name: z[0] + ' damper' }));
   });
 
+  // music: sonos trio + preset rows (demo mirrors the live attribute shapes)
+  S(st('media_player.sonos_move', 'paused', { friendly_name: 'Sonos Move', volume_level: 0.3, is_volume_muted: false, media_title: 'Rhiannon', media_artist: 'Fleetwood Mac', media_album_name: 'Greatest Hits', shuffle: true, source: 'Spotify Connect' }));
+  S(st('media_player.family_room', 'idle', { friendly_name: 'Sonos Family Room', volume_level: 0.18, is_volume_muted: false }));
+  S(st('media_player.dining_room', 'idle', { friendly_name: 'Sonos Dining Room', volume_level: 0.12, is_volume_muted: false }));
+  S(st('todo.music_presets', '2', {
+    friendly_name: 'Music Presets',
+    items: [
+      { uid: 'm1', summary: 'Hogbender | spotify:playlist:36HtQAK1am7dKFJOI3yCER', status: 'needs_action' },
+      { uid: 'm2', summary: 'Sunday Jazz | https://open.spotify.com/playlist/37i9dQZF1DX0SM0LYsmbMT', status: 'needs_action' },
+      { uid: 'm3', summary: 'Dinner Quiet | spotify:playlist:0vvXsWCC9xrxtXeO', status: 'completed' }
+    ]
+  }));
+
   // cellar
   S(st('sensor.cork_dork_total_bottles', '141', { friendly_name: 'Cork Dork Total Bottles' }));
   S(st('sensor.cork_dork_capacity', '97.9', { unit_of_measurement: '%', friendly_name: 'Cork Dork Capacity' }));
