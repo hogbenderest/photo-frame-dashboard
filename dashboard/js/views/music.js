@@ -4,14 +4,19 @@
 // Tap a tile to play on the selected speaker; transport + volume control it.
 //
 // Live-verified behaviours baked in (2026-10-18):
-// - play_media with a spotify:playlist URI loads the queue, but a PAUSED Sonos
-//   does not auto-start: always follow play_media with media_player.media_play.
+// - A tile tap always TAKES OVER the speaker: media_stop first (a Spotify app
+//   Connect session - x-sonos-vli - otherwise holds the transport and
+//   media_play resumes the app's song instead of our queue), then play_media
+//   to load the queue, then a queue-ready wait, then media_play.
+// - play_media returns before Sonos finishes resolving the playlist (~7 s for
+//   700+ tracks); a media_play sent mid-load is silently dropped, so the view
+//   polls queue_size over the WS store before pressing play.
 // - The hero repaints on a signature of meaningful attributes, not on every
 //   state push: Sonos emits media_position diffs about every second while
 //   playing, and a full repaint per second would fight the volume slider.
 (function () {
   'use strict';
-  var C = window.HACONFIG, HA = window.HA, V = { el: null, items: null, sig: null, dragging: false };
+  var C = window.HACONFIG, HA = window.HA, V = { el: null, items: null, sig: null, dragging: false, loading: false };
 
   var SPOTIFY_LINK = /^https?:\/\/open\.spotify\.com\/(playlist|album|track|artist|episode|show)\//i;
 
@@ -35,6 +40,9 @@
     if (!name || !uri) return null;
     var isUri = uri.indexOf('spotify:') === 0;
     if (!isUri && !SPOTIFY_LINK.test(uri)) return null;
+    // Spotify's Share > Copy link appends a "?si=..." tracking param; strip it
+    // so Sonos gets a clean URL (family flow: paste link, no formatting).
+    if (!isUri) uri = uri.split('?')[0].replace(/\/+$/, '');
     return { name: name, uri: uri, isUri: isUri };
   }
 
@@ -177,7 +185,7 @@
     return '<div class="mu-top"><span class="label">Speaker</span><div class="mu-chips">' + C.music.speakers.map(speakerChip).join('') + '</div></div>' +
       '<div class="mu-main">' + hero() +
       '<div class="mu-presets"><span class="label">Playlists</span>' + tilesHtml +
-      '<div class="mu-note mu-note--fixed">Playlists are the <b>Music Presets</b> list in the HA app: add <b>Name | spotify:playlist:ID</b> rows to change them.</div>' +
+      '<div class="mu-note mu-note--fixed">Tap a playlist to play it from the top; pause and resume with the transport buttons. Playlists are the <b>Music Presets</b> list in the HA app: add <b>Name | spotify:playlist:ID</b> rows to change them.</div>' +
       '</div></div>';
   }
 
@@ -234,22 +242,76 @@
     });
   }
 
+  // Wait until the speaker actually has a queue. play_media returns as soon as
+  // HA accepts the call, but Sonos takes several seconds to resolve a large
+  // Spotify playlist (738 tracks = ~7 s); a media_play sent during that window
+  // is silently dropped - the silent failure of the first family tap
+  // (2026-10-18). The WS store updates on its own, so poll it locally.
+  function waitForQueue(id, tries) {
+    return new Promise(function (resolve) {
+      var n = 0;
+      (function tick() {
+        var q = HA.attr(id, 'queue_size');
+        if (q && q > 0) return resolve(true);
+        if (n++ >= tries) return resolve(false); // give up gracefully: try play anyway
+        setTimeout(tick, 400);
+      })();
+    });
+  }
+
+  function lastKey(id) { return 'music-last:' + id; }
+  function readLast(id) {
+    try { return JSON.parse(localStorage.getItem(lastKey(id)) || 'null'); } catch (e) { return null; }
+  }
+  function writeLast(id, uri) {
+    try { localStorage.setItem(lastKey(id), JSON.stringify({ uri: uri })); } catch (e) {}
+  }
+
+  function startLoad(id, p, name) {
+    if (V.loading) return; // one load at a time: repeat taps mid-load are ignored
+    V.loading = true;
+    App.toast('Starting <b>' + App.esc(p.name) + '</b> on <b>' + App.esc(name) + '</b>', { icon: 'music', ms: 2600 });
+    // Stop FIRST: a Spotify app Connect session (x-sonos-vli) can hold the
+    // transport, and media_play would then resume the app's current song
+    // instead of our queue - the "it played the app's song again" failure
+    // (2026-10-18). Stop releases the transport whatever holds it.
+    HA.callService('media_player.media_stop', { entity_id: id })
+      .catch(function () {}) // already idle/stopped: fine
+      .then(function () {
+        return HA.callService('media_player.play_media', {
+          entity_id: id,
+          media_content_id: p.uri,
+          media_content_type: p.isUri ? 'playlist' : 'music',
+          enqueue: 'replace',
+          extra: { title: p.name }
+        });
+      })
+      .then(function () { return waitForQueue(id, 50); }) // ~20 s ceiling; loads take ~7 s
+      .then(function () {
+        writeLast(id, p.uri);
+        return HA.callService('media_player.media_play', { entity_id: id });
+      })
+      .catch(failToast)
+      .then(function () { V.loading = false; });
+  }
+
+  // A tap always means "take the speaker and play this playlist from the top".
+  // Pause/resume lives in the transport buttons only - continuing where the
+  // family left off is the play/pause button, not the tile.
   function playIndex(i) {
     var pr = presets();
     if (!pr || !pr.tiles[i]) return;
     var p = pr.tiles[i];
-    var cfg = byId(selected());
-    App.toast('Playing <b>' + App.esc(p.name) + '</b> on <b>' + App.esc(cfg ? cfg.name : selected()) + '</b>', { icon: 'music', ms: 2600 });
-    HA.callService('media_player.play_media', {
-      entity_id: selected(),
-      media_content_id: p.uri,
-      media_content_type: p.isUri ? 'playlist' : 'music',
-      extra: { title: p.name }
-    }).then(function () {
-      // A paused Sonos loads the queue but does not start it (verified live):
-      // media_play makes the tap deterministic.
-      return HA.callService('media_player.media_play', { entity_id: selected() });
-    }).catch(failToast);
+    var id = selected(), cfg = byId(id);
+    var name = cfg ? cfg.name : id;
+    var last = readLast(id);
+    var cid = HA.attr(id, 'media_content_id') || '';
+    var onOurQueue = cid.indexOf('x-sonos-spotify') === 0; // not an app Connect session
+    if (onOurQueue && HA.state(id) === 'playing' && last && last.uri === p.uri) {
+      App.toast('Already playing <b>' + App.esc(p.name) + '</b>', { icon: 'music', ms: 2000 });
+      return;
+    }
+    startLoad(id, p, name);
   }
 
   App.register('music', {

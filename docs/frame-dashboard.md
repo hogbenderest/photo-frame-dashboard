@@ -266,7 +266,17 @@ node scripts/frame-devtools.mjs          # reload + capture console/network/stat
 14. **Sonos Spotify mechanics (verified live 2026-10-18)**: `media_player.play_media` with a
    `spotify:playlist:...` URI loads the full queue on a Sonos speaker through the Sonos
    integration alone (Spotify service must be linked in the Sonos app), but a PAUSED speaker
-   does not auto-start - always follow `play_media` with `media_player.media_play`. The HA
+   does not auto-start - always follow `play_media` with `media_player.media_play`. That play
+   must WAIT until the queue is really loaded: the REST call returns immediately while Sonos
+   takes ~7 s to resolve a 700+ track playlist, and a `media_play` sent during the load window
+   is silently dropped (the first family tap failed exactly this way).
+15. **A Spotify app Connect session can hold the transport (2026-10-18)**: while the Spotify
+   app streams to a Sonos speaker the transport URI is `x-sonos-vli:...` (a virtual line-in)
+   and `media_play` resumes THE APP'S song, not the Sonos queue - the "it played the app's
+   current song again" failure. The Music view therefore treats a tile tap as a takeover:
+   `media_stop` first (releases whatever holds the speaker), then `play_media` (queue load),
+   then the queue-ready wait, then `media_play`. Tap = play this playlist from the top;
+   pause/resume of whatever is on the speaker lives in the transport buttons only. The HA
    Spotify integration cannot target Sonos at all (docs: "Unsupported devices"); it is only
    useful for the account entity and non-Sonos Spotify Connect targets. `sonos.snapshot`/
    `restore` cannot resurrect a paused Spotify Connect session (x-sonos-vli URIs are
