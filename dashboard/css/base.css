@@ -50,7 +50,27 @@ ul { margin: 0; padding: 0; list-style: none; }
   grid-template-columns: 76px 1fr;
 }
 
-/* ---------------------------------------------------------------- rail */
+/* ---------------------------------------------------------------- night-theme hard-coded colour overrides */
+/* These surfaces hard-code white/black and need .night-theme counterparts.
+   --ink becomes light in night mode, so "background: var(--ink); color: #fff"
+   already inverts correctly (dark button text on light chip). But surfaces
+   that hard-code #fff as a background need explicit overrides. */
+.night-theme .label--light { color: rgba(224, 224, 224, .72); }
+.night-theme .seg--glass button.is-on { background: #e0e0e0; color: #0d0d0f; }
+.night-theme .pill { background: rgba(255, 255, 255, .12); }
+.night-theme .pill--alert { background: #e0e0e0; color: var(--alert); }
+.night-theme .toast { background: rgba(20, 20, 22, .95); color: #e0e0e0; }
+.night-theme .toast-undo:active { background: rgba(255, 255, 255, .25); }
+.night-theme .banner--ink .banner-btn { background: rgba(255, 255, 255, .12); }
+.night-theme .sheet-scrim { background: rgba(0, 0, 0, .7); }
+.night-theme .banner { background: var(--card); }
+
+/* Suppress nightdash filter on night-theme profiles: the red-clock tap would
+   invert an already-dark UI into a bright sepia mess. Return to day instead. */
+.stage.night-theme[data-mode="nightdash"] > .rail,
+.stage.night-theme[data-mode="nightdash"] > .views { filter: none; }
+
+
 .rail {
   display: flex; flex-direction: column;
   padding: 8px 0 12px;

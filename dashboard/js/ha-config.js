@@ -303,7 +303,7 @@
     // deployed to the living room has no "frame" key).
     profiles: {
       living:    { name: 'Living Room', landing: 'home', room: 'patio',     photosManifest: '/local/frame-photos/frame-photos.js' },
-      helen_ian: { name: 'Helen + Ian', landing: 'room', room: 'helen_ian', photosManifest: '/local/frame-photos/helen_ian/frame-photos.js' },
+      helen_ian: { name: 'Helen + Ian', landing: 'room', room: 'helen_ian', photosManifest: '/local/frame-photos/helen_ian/frame-photos.js', nightMode: true },
       alexa:     { name: 'Alexa',       landing: 'room', room: 'alexa',     photosManifest: '/local/frame-photos/alexa/frame-photos.js' },
       kyle:      { name: 'Kyle',        landing: 'room', room: 'kyle',      photosManifest: '/local/frame-photos/kyle/frame-photos.js' },
       marcus:    { name: 'Marcus',      landing: 'room', room: 'marcus',    photosManifest: '/local/frame-photos/marcus/frame-photos.js' },
@@ -390,6 +390,7 @@
       this.calendar.entities.forEach(function (e) { add(e.id); });
       this.lists.lists.forEach(function (l) { add(l.id); });
       add(this.mail.sensor);
+      add('sun.sun');
       add(this.chores.definitionsEntity);
       add(this.chores.familyTodo);
       PEOPLE.forEach(function (p) { add(p.person); add(p.todo); });

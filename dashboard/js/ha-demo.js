@@ -99,6 +99,9 @@
   var soils = [['sensor.letterbox_soil_moisture', 36.7, 'Letterbox Lawn'], ['sensor.driveway_soil_moisture', 28.9, 'Driveway Lawn'], ['sensor.back_garden_soil_moisture_soil_moisture', 77.7, 'Back Garden'], ['sensor.patio_tomato_plant_soil_moisture', 80.4, 'Patio Tomato'], ['sensor.balcony_bay_leaf_soil_moisture_soil_moisture', 12.7, 'Balcony Bay Leaf'], ['sensor.palm_pot_plant_soil_moisture_soil_moisture', 62.3, 'Palm Pot'], ['sensor.third_reality_inc_3rsm0347z_soil_moisture', 91.4, 'Plant Meter 1'], ['sensor.landing_balcony_plants_soil_moisture', 68.9, 'Plant Meter 2'], ['sensor.temporary_device_2_soil_moisture', 86.4, 'Plant Meter 3']];
   soils.forEach(function (s) { S(st(s[0], String(s[1]), { unit_of_measurement: '%', friendly_name: s[2] })); });
 
+  // sun (demo: below horizon so Mac-side dev shows the night theme)
+  S(st('sun.sun', 'above_horizon', { friendly_name: 'Sun' }));
+
   // patio (demo: lights + RF fan mirrors)
   S(st('input_boolean.patio_fan_power_state', 'off', { friendly_name: 'Patio Fan Power State' }));
   // mail sensor demo state incl. starred (user-curated important set)

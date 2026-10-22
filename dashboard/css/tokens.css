@@ -16,6 +16,7 @@
   --amber: #FF9500;
   --amber-rgb: 255 149 0;
   --ok: #00A36C;
+  --ok-rgb: 0 163 108;
   --warm: #FFC45C;
   --warm-rgb: 255 196 92;
   --night: #D8321F;
@@ -45,4 +46,20 @@
   --tap: 64px;
   --ease: cubic-bezier(.2, .8, .2, 1);
   --spring: cubic-bezier(.34, 1.56, .64, 1);
+}
+
+/* Night theme: overridden by .night-theme on the stage (see base.css).
+   --ink-rgb must match --ink so translucent washes (event rows, chore items,
+   meter bars, mail rows) stay visible on dark cards.
+   Hard-coded #fff surfaces (bill pills, selected chips, check icons) need
+   .night-theme overrides in base.css. */
+.night-theme {
+  --paper: #0d0d0f;
+  --paper-2: #1a1a1e;
+  --card: #141416;
+  --ink: #e0e0e0;
+  --ink-rgb: 224 224 224;
+  --ink-2: #b0b0b0;
+  --mute: #606060;
+  --line: #2a2a2e;
 }

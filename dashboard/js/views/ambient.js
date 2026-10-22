@@ -42,7 +42,14 @@
     $('#night').innerHTML = '<div class="nt-inner"></div>';
     amb.show = new App.Slideshow($('#ambient .amb-stage'), { layout: 'cover', captions: false, interval: 14000 });
     $('#ambient').addEventListener('click', function () { App.setMode('day'); App.go('home'); });
-    $('#night').addEventListener('click', function () { App.setMode('nightdash'); });
+    $('#night').addEventListener('click', function () {
+      // On night-theme profiles, nightdash inverts an already-dark UI into a
+      // bright sepia mess; the base.css suppresses the filter but returning
+      // to day directly is cleaner.
+      var prof = C.profiles[C.frameId] || {};
+      if (prof.nightMode) App.setMode('day');
+      else App.setMode('nightdash');
+    });
     shiftTimer = setInterval(pixelShift, 60000);
     HA.loadPhotos();
   });

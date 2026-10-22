@@ -167,6 +167,7 @@
     refreshStale(1500);
   }
   App.on('data', markStale);
+  App.on('data', function () { App.applyNightTheme(); });
   App.on('time', markStale);
   App.rerender = function () {
     if (App.current) App.views[App.current].show($('#view-' + App.current), { rerender: true });
@@ -236,6 +237,20 @@
     el.addEventListener('pointerup', cancel);
     el.addEventListener('pointerleave', cancel);
     el.addEventListener('pointercancel', cancel);
+  };
+
+  // ------------------------------------------------------------ night theme (sun-driven, profile-gated)
+  // Computes once per data event; classList.toggle with a boolean is a no-op
+  // when the value hasn't changed. Falls back to App.isNight() if sun.sun is
+  // unavailable (boot race, HA offline). sun.sun: 'below_horizon' = night.
+  App.applyNightTheme = function () {
+    var HC = window.HACONFIG;
+    if (!HC) return;
+    var prof = HC.profile();
+    if (!prof.nightMode) return;
+    var sun = HA.state('sun.sun');
+    var isNight = (sun === 'below_horizon') || (sun === null || sun === 'unavailable' || sun === 'unknown' ? App.isNight() : false);
+    document.getElementById('stage').classList.toggle('night-theme', isNight);
   };
 
   // ------------------------------------------------------------ modes: day / ambient / night
