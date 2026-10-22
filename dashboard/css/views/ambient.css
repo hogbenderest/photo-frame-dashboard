@@ -1,4 +1,6 @@
-/* Ambient (idle photo frame) */
+/* Ambient (idle photo frame) and Night (dim red clock) overlays, live HA edition.
+   Night-theme overrides make the ambient overlay warm (amber text, warm dark
+   background) for sleep safety. The night overlay is already warm red. */
 .ambient { position: absolute; top: 0; right: 0; bottom: 0; left: 0; z-index: 65; background: #000; display: none; color: #fff; cursor: pointer; }
 .stage[data-mode="ambient"] .ambient { display: block; }
 .amb-stage { position: absolute; top: 0; right: 0; bottom: 0; left: 0; }
@@ -27,3 +29,15 @@
 .nt-line { margin-top: 34px; font-size: 26px; display: flex; align-items: center; justify-content: center; gap: 10px; color: #A02618; }
 .nt-line b { color: #C22C1C; }
 .nt-lock { margin-top: 18px; font-size: 18px; display: flex; align-items: center; justify-content: center; gap: 8px; color: #7A1D12; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+
+/* ---- night-theme warm overrides for ambient overlay ----
+   The ambient overlay hard-codes white text and black scrim. In warm night
+   mode, all text shifts to 1800K amber (#ff9e42, B/R=0.26) and the
+   background/scrim shift to warm black (#120a06). */
+.night-theme .ambient { background: #120a06; color: #ff9e42; }
+.night-theme .amb-scrim { background: linear-gradient(0deg, rgba(18, 10, 6, .85), rgba(18, 10, 6, 0)); }
+.night-theme .amb-next { background: rgba(255, 158, 66, .16); }
+.night-theme .amb-next i { box-shadow: 0 0 0 2px #ff9e42; }
+.night-theme .amb-who .avatar--away { background: rgba(18, 10, 6, .5); }
+.night-theme .amb-wx .i { color: #cc7e36; }
+.night-theme .night { background: #120a06; }

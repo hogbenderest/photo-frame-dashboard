@@ -7,6 +7,7 @@
 
 .mu-chip { flex: 1; max-width: 360px; text-align: left; background: var(--card); border: 2px solid var(--line); border-radius: var(--r-s); padding: 12px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: border-color var(--ease), background var(--ease); }
 .mu-chip.is-sel { border-color: var(--ink); background: #fff; }
+.night-theme .mu-chip.is-sel { background: #ff9e42; }
 .mu-chip.is-dead { opacity: .4; }
 .mu-chip-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--line); flex: none; }
 .mu-chip-dot.is-live { background: var(--ok); }
@@ -38,6 +39,7 @@
 .mu-btn:active { background: var(--paper-2); }
 .mu-btn[disabled] { opacity: .35; }
 .mu-btn--main { min-width: 92px; background: var(--ink); color: #fff; border-color: var(--ink); }
+.night-theme .mu-btn--main { color: #120a06; }
 .mu-btn--main:active { background: var(--ink-2); }
 
 .mu-vol { display: flex; align-items: center; gap: 12px; color: var(--mute); }

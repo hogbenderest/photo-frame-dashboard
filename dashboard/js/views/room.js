@@ -177,7 +177,8 @@
       if (ac) { zoneSheet(ac.dataset.aczone); return; }
       var l = e.target.closest('[data-rmlight]');
       if (l) {
-        HA.callService(HA.on(l.dataset.rmlight) ? 'light.turn_off' : 'light.turn_on', { entity_id: l.dataset.rmlight });
+        var domain = l.dataset.rmlight.split('.')[0];
+        HA.callService(HA.on(l.dataset.rmlight) ? domain + '.turn_off' : domain + '.turn_on', { entity_id: l.dataset.rmlight });
         return;
       }
       var f = e.target.closest('[data-pfan]');

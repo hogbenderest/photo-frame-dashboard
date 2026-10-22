@@ -6,6 +6,7 @@
 .cam-img img.is-broken { opacity: .3; }
 .cam-demo { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #555; }
 .cam-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 56px; padding: 8px 14px; background: rgba(17 17 17 / .85); color: #fff; display: flex; align-items: center; gap: 10px; }
+.night-theme .cam-bar { background: rgba(23 13 8 / .85); color: #ff9e42; }
 .cam-bar b { font-size: var(--fs-body); font-weight: 800; flex: none; }
 .cam-chips { display: flex; gap: 5px; overflow: hidden; }
 .cam-chip { font-size: var(--fs-min); font-weight: 700; padding: 3px 10px; border-radius: 999px; background: rgba(255 255 255 / .18); white-space: nowrap; }

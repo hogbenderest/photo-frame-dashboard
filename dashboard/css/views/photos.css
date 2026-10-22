@@ -2,6 +2,7 @@
    not-configured state. */
 .ph-stage { position: absolute; inset: 0; }
 .ph-cap { position: absolute; left: var(--pad); bottom: var(--pad); z-index: 3; padding: 10px 18px; border-radius: var(--r-s); background: rgba(17 17 17 / .72); color: #fff; }
+.night-theme .ph-cap { background: rgba(23 13 8 / .72); color: #ff9e42; }
 .ph-cap b { display: block; font-size: var(--fs-min); font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
 .ph-cap span { font-size: var(--fs-body); font-weight: 700; }
 
@@ -13,6 +14,7 @@
 .ph-zone:active { background: rgba(255 255 255 / .05); }
 
 .ph-count { position: absolute; top: 18px; right: 18px; z-index: 4; background: rgba(17 17 17 / .65); color: #fff; border-radius: 999px; padding: 5px 16px; font-size: 15px; font-weight: 800; pointer-events: none; }
+.night-theme .ph-count { background: rgba(23 13 8 / .65); color: #ff9e42; }
 .ph-paused { position: absolute; top: 18px; left: 18px; z-index: 4; display: none; align-items: center; gap: 6px; background: rgba(var(--amber-rgb), .9); color: var(--ink); border-radius: 999px; padding: 6px 16px; font-size: var(--fs-min); font-weight: 800; pointer-events: none; }
 .ph-paused.is-on { display: inline-flex; }
 

@@ -71,7 +71,10 @@
   }
 
   function toggle(id) {
-    var svc = HA.on(id) ? 'light.turn_off' : 'light.turn_on';
+    // Switch-domain entities need switch.turn_on/off; light-domain need light.turn_on/off.
+    // homeassistant.turn_on/off works for both but is slower (extra hop).
+    var domain = id.split('.')[0];
+    var svc = HA.on(id) ? domain + '.turn_off' : domain + '.turn_on';
     HA.callService(svc, { entity_id: id }).catch(function () {
       App.toast('Couldn\u2019t reach <b>' + App.esc(HA.name(id)) + '</b>', { tone: 'error', icon: 'bolt' });
     });

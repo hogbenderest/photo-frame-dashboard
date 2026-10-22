@@ -12,6 +12,7 @@
 .li-x { margin-left: auto; border: none; background: none; color: var(--mute); cursor: pointer; padding: 6px; }
 .li-item.is-done { opacity: .45; }
 .li-item.is-done .li-check { background: var(--ok); border-color: var(--ok); color: #fff; }
+.night-theme .li-item.is-done .li-check { color: #120a06; }
 .li-item.is-done .li-name { text-decoration: line-through; }
 .li-done-label { grid-column: 1 / -1; margin-top: 8px; }
 .li-free { font-size: var(--fs-l); color: var(--mute); padding: 12px; }

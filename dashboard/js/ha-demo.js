@@ -45,8 +45,8 @@
   S(st('light.tv_light_strip', 'off', { friendly_name: 'TV Light Strip', brightness: 80 }));
   S(st('light.keyboard_light_strip', 'off', { friendly_name: 'Keyboard Light Strip', brightness: 60 }));
   S(st('light.bed_strip', 'off', { friendly_name: 'Bed Strip', brightness: 120 }));
-  S(st('light.smart_plug_20041792822229251h3948e1e91a3cd4_dnd', 'on', { friendly_name: 'Bed Lamp Ian Dnd' }));
-  S(st('light.smart_plug_20041747068605251h3948e1e91a3dba_dnd', 'on', { friendly_name: 'Bed Lamp Helen Dnd' }));
+  S(st('switch.smart_plug_20041792822229251h3948e1e91a3cd4_outlet', 'on', { friendly_name: 'Bed Lamp Ian Outlet' }));
+  S(st('switch.smart_plug_20041747068605251h3948e1e91a3dba_outlet', 'on', { friendly_name: 'Bed Lamp Helen Outlet' }));
   S(st('light.ikea_of_sweden_tradfri_bulb_e14_cws_globe_806lm', 'on', { friendly_name: 'Sphere light', brightness: 140 }));
   S(st('light.paper_lamp_tradfri_globe_806lm', 'off', { friendly_name: 'Paper lamp', brightness: 200 }));
   S(st('light.wled_gledopto_main', 'off', { friendly_name: 'Upstairs Landing Bookcase Light', brightness: 90 }));

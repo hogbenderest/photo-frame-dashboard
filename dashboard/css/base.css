@@ -51,18 +51,23 @@ ul { margin: 0; padding: 0; list-style: none; }
 }
 
 /* ---------------------------------------------------------------- night-theme hard-coded colour overrides */
-/* These surfaces hard-code white/black and need .night-theme counterparts.
-   --ink becomes light in night mode, so "background: var(--ink); color: #fff"
-   already inverts correctly (dark button text on light chip). But surfaces
-   that hard-code #fff as a background need explicit overrides. */
-.night-theme .label--light { color: rgba(224, 224, 224, .72); }
-.night-theme .seg--glass button.is-on { background: #e0e0e0; color: #0d0d0f; }
-.night-theme .pill { background: rgba(255, 255, 255, .12); }
-.night-theme .pill--alert { background: #e0e0e0; color: var(--alert); }
-.night-theme .toast { background: rgba(20, 20, 22, .95); color: #e0e0e0; }
-.night-theme .toast-undo:active { background: rgba(255, 255, 255, .25); }
-.night-theme .banner--ink .banner-btn { background: rgba(255, 255, 255, .12); }
-.night-theme .sheet-scrim { background: rgba(0, 0, 0, .7); }
+/* These surfaces hard-code white/black and need .night-theme warm counterparts.
+   --ink becomes warm amber (#ff9e42) in night mode, so "background: var(--ink);
+   color: #fff" already inverts (dark text on warm chip). Surfaces that hard-code
+   #fff as a background or text get warm amber overrides.
+   All colours maintain B/R < 0.30 for sleep safety (melatonin). */
+.night-theme .label--light { color: rgba(255, 158, 66, .72); }
+.night-theme .seg--glass button.is-on { background: #ff9e42; color: #120a06; }
+.night-theme .pill { background: rgba(255, 158, 66, .12); }
+.night-theme .pill--alert { background: #ff9e42; color: var(--alert); }
+.night-theme .pill--soon { background: var(--ink); color: #120a06; }
+.night-theme .banner-btn--solid { background: var(--ink); color: #120a06; }
+.night-theme .banner--ink .banner-btn--solid { background: #ff9e42; color: #120a06; }
+.night-theme .toast { background: rgba(23, 13, 8, .95); color: #ff9e42; }
+.night-theme .toast-undo { color: #cc7e36; }
+.night-theme .toast-undo:active { background: rgba(255, 158, 66, .25); }
+.night-theme .banner--ink .banner-btn { background: rgba(255, 158, 66, .12); }
+.night-theme .sheet-scrim { background: rgba(18, 10, 6, .7); }
 .night-theme .banner { background: var(--card); }
 
 /* Suppress nightdash filter on night-theme profiles: the red-clock tap would

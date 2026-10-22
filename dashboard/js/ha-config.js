@@ -52,8 +52,8 @@
         ]},
         { id: 'bedroom', name: 'Helen + Ian', lights: [
           { id: 'light.bed_strip', name: 'Bed Strip', brightness: true },
-          { id: 'light.smart_plug_20041792822229251h3948e1e91a3cd4_dnd', name: 'Bed Lamp Ian', brightness: false },
-          { id: 'light.smart_plug_20041747068605251h3948e1e91a3dba_dnd', name: 'Bed Lamp Helen', brightness: false }
+          { id: 'switch.smart_plug_20041792822229251h3948e1e91a3cd4_outlet', name: 'Bed Lamp Ian', brightness: false },
+          { id: 'switch.smart_plug_20041747068605251h3948e1e91a3dba_outlet', name: 'Bed Lamp Helen', brightness: false }
         ]},
         { id: 'kyle', name: "Kyle's Room", lights: [
           { id: 'light.ikea_of_sweden_tradfri_bulb_e14_cws_globe_806lm', name: 'Sphere Light', brightness: true }
@@ -314,8 +314,8 @@
       patio:     { name: 'Patio', kind: 'patio' },
       helen_ian: { name: 'Helen + Ian', aircon: 'helen_ian',
                    lights: [{ id: 'light.bed_strip', name: 'Bed Strip', brightness: true },
-                             { id: 'light.smart_plug_20041792822229251h3948e1e91a3cd4_dnd', name: 'Bed Lamp Ian', brightness: false },
-                             { id: 'light.smart_plug_20041747068605251h3948e1e91a3dba_dnd', name: 'Bed Lamp Helen', brightness: false }],
+                             { id: 'switch.smart_plug_20041792822229251h3948e1e91a3cd4_outlet', name: 'Bed Lamp Ian', brightness: false },
+                             { id: 'switch.smart_plug_20041747068605251h3948e1e91a3dba_outlet', name: 'Bed Lamp Helen', brightness: false }],
                    chores: ['helen', 'ian'] },
       alexa:     { name: 'Alexa', aircon: 'alexa', lights: [{ id: 'light.alexa_lamp', name: 'Alexa Lamp', brightness: true }], chores: ['alexa'] },
       kyle:      { name: 'Kyle', aircon: 'kyle', lights: [{ id: 'light.ikea_of_sweden_tradfri_bulb_e14_cws_globe_806lm', name: 'Sphere Light', brightness: true }], chores: ['kyle'] },

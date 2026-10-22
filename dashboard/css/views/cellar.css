@@ -32,6 +32,8 @@ button.cl-slot { border: 2px solid transparent; }
 .cl-pk-young { background: #6B7280; }
 .cl-pk-past_due, .cl-pk-past_peak { background: var(--alert); }
 .cl-pk-unknown { background: #B8B2A6; }
+.night-theme .cl-pk-young { background: #5a4030; }
+.night-theme .cl-pk-unknown { background: #4a3525; }
 .cl-unplaced { font-size: var(--fs-min); color: var(--mute); font-weight: 700; }
 
 .cl-shelf { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 14px; border-radius: var(--r-s); border: 2px solid var(--line); background: var(--card); }

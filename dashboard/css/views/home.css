@@ -64,6 +64,7 @@
 .cu-mail.is-mute { color: var(--mute); cursor: default; }
 .cu-mail .i { color: var(--mute); flex: none; }
 .cu-billpill { display: inline-block; font-style: normal; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; background: var(--alert); color: #fff; border-radius: 999px; padding: 2px 10px; margin-left: 8px; }
+.night-theme .cu-billpill { color: #120a06; }
 .cu-starpill { display: inline-flex; align-items: center; gap: 3px; font-style: normal; font-size: 12px; font-weight: 800; background: rgba(var(--amber-rgb), .25); color: var(--ink); border-radius: 999px; padding: 2px 10px; margin-left: 8px; }
 .cu-starpill .i { color: var(--amber); }
 .cl-mail-item.is-bill { border-color: var(--alert); }
