@@ -1,29 +1,23 @@
-/* Lights: area groups + tiles (shares the control-view tile language). */
-.lights-wrap { height: 100%; padding: var(--pad); display: flex; flex-direction: column; gap: var(--gap); overflow: hidden; }
-.ct-summary { display: flex; align-items: center; gap: 14px; }
-.ct-summary .num { font-size: var(--fs-xl); font-weight: 800; font-stretch: 62%; }
-.ct-summary span { font-size: var(--fs-body); color: var(--ink-2); font-weight: 700; }
-.lights-grid { flex: 1; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--gap); align-content: start; overflow-y: auto; }
-.lg-group { border-radius: var(--r); border: 2px solid var(--line); background: var(--card); padding: 12px; }
-.lg-head { display: flex; align-items: center; gap: 10px; padding: 2px 4px 10px; }
-.lg-head b { font-size: var(--fs-body); font-weight: 800; letter-spacing: .02em; text-transform: uppercase; }
-.lg-count { color: var(--mute); font-weight: 800; }
-.lg-alloff { margin-left: auto; display: flex; align-items: center; gap: 5px; border: 2px solid var(--line); background: var(--paper); border-radius: 999px; padding: 5px 12px; font-size: var(--fs-min); font-weight: 800; cursor: pointer; }
-.lg-alloff:disabled { opacity: .35; }
-.lg-alloff--all { margin-left: 12px; border-color: var(--ink); }
-.lg-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.tile { position: relative; border-radius: var(--r-s); border: 2px solid var(--line); background: var(--paper); padding: 12px; overflow: hidden; display: flex; flex-direction: column; justify-content: center; gap: 3px; cursor: pointer; text-align: left; }
-.tile-fill { position: absolute; inset: 0 auto 0 0; width: var(--lvl); background: rgba(var(--amber-rgb), .28); transition: width .6s var(--ease); }
-.tile--light.is-on { border-color: var(--amber); }
+/* Lights: single flat grid, large tiles, obvious on-states (10 ft readable). */
+.lights-wrap { height: 100%; padding: var(--pad); display: flex; flex-direction: column; gap: 14px; overflow: hidden; }
+.ct-summary { display: flex; align-items: center; gap: 14px; flex: none; }
+.ct-summary .num { font-size: 44px; font-weight: 800; font-stretch: 62%; }
+.ct-summary span { font-size: var(--fs-body); font-weight: 700; color: var(--ink-2); }
+.lights-grid { flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows: minmax(120px, 1fr); gap: 14px; overflow-y: auto; }
+.tile { position: relative; border-radius: var(--r-s); border: 3px solid var(--line); background: var(--card); padding: 16px 20px; overflow: hidden; display: flex; flex-direction: column; justify-content: center; gap: 6px; cursor: pointer; text-align: left; min-height: 120px; }
+.tile-fill { position: absolute; inset: 0 auto 0 0; width: var(--lvl); background: rgba(var(--amber-rgb), .45); transition: width .6s var(--ease); }
+.tile--light.is-on { border-color: var(--amber); background: rgba(var(--amber-rgb), .12); }
+.tile--light.is-on .tile-fill { background: rgba(var(--amber-rgb), .35); }
 .tile > * { position: relative; }
 .tile-icon { color: var(--ink-2); }
 .tile--light.is-on .tile-icon { color: var(--amber); }
-.tile-name { font-size: var(--fs-body); font-weight: 800; }
+.tile-name { font-size: 24px; font-weight: 800; }
 .tile-state { font-size: var(--fs-min); font-weight: 700; color: var(--mute); }
 .tile-area { font-size: var(--fs-min); color: var(--mute); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
 .tile.is-dead { opacity: .4; }
 .tile.is-holding { border-color: var(--ink); }
+.lg-bright { min-width: 600px; }
 .lg-bright-name { font-size: var(--fs-l); margin: 4px 0 16px; }
-.lg-range { width: 100%; height: 44px; }
+.lg-range { width: 100%; height: 60px; }
 .lg-bright-row { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; }
 .lg-bright-row .num { font-size: var(--fs-xl); font-weight: 800; }

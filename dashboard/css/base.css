@@ -70,9 +70,9 @@ ul { margin: 0; padding: 0; list-style: none; }
 .rail-item.is-active:active { background: var(--ink-2); }
 .rail-clock { margin-top: auto; padding: 10px 0; text-align: center; line-height: 1; position: relative; overflow: hidden; }
 /* Ten-tab rail: slightly tighter rows so the clock still fits 800px. */
-.rail--ten .rail-item { height: 52px; gap: 3px; } /* 12 tabs: 12x52=624 + clock fits 800 */
-.rail--ten .rail-item .i { width: 21px; height: 21px; }
-.rail--ten .rail-item span { font-size: 11px; letter-spacing: .04em; }
+.rail--ten .rail-item { height: 50px; gap: 3px; } /* 13 tabs: 13x50=650 + clock fits 800 */
+.rail--ten .rail-item .i { width: 26px; height: 26px; }
+.rail--ten .rail-item span { font-size: 13px; letter-spacing: .04em; }
 .rail-clock.is-holding { background: var(--paper-2); }
 .rail-clock b { display: block; font-size: 24px; font-weight: 800; font-stretch: 62%; font-variant-numeric: tabular-nums; }
 .rail-clock span { font-size: 12px; font-weight: 700; letter-spacing: .1em; color: var(--mute); }

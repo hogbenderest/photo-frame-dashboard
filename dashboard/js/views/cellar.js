@@ -5,7 +5,7 @@
 // via the wine_cellar.remove_wine service then forces a fresh inventory.
 (function () {
   'use strict';
-  var C = window.HACONFIG, HA = window.HA, V = { filter: 'all', wine: null, tab: 0, cabinets: null, mode: 'racks' };
+  var C = window.HACONFIG, HA = window.HA, V = { filter: 'all', wine: null, tab: 0, cabinets: null, mode: 'list' };
 
   var FILTERS = [
     { id: 'all', name: 'All', match: function () { return true; } },

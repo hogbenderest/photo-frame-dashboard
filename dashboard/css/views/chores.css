@@ -1,21 +1,29 @@
-/* Chores: per-person columns from HA to-do lists. */
-.chores-wrap { height: 100%; padding: var(--pad); display: flex; flex-direction: column; gap: var(--gap); }
-.ch-grid { flex: 1; display: grid; grid-template-columns: repeat(6, 1fr); gap: var(--gap); min-height: 0; }
-.has-family .ch-grid { grid-template-columns: repeat(7, 1fr); }
-.ch-col { border-radius: var(--r); border: 2px solid var(--line); background: var(--card); padding: 14px; display: flex; flex-direction: column; gap: 10px; overflow: hidden; }
-.ch-head { display: flex; align-items: center; gap: 10px; }
-.ch-head b { font-size: var(--fs-body); }
-.ch-count { margin-left: auto; font-size: var(--fs-m); font-weight: 800; color: var(--mute); }
-.ch-count.is-done { color: var(--ok); }
-.ch-items { display: flex; flex-direction: column; gap: 6px; overflow: hidden; }
-.ch-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: var(--r-s); background: rgba(var(--ink-rgb), .05); border: none; text-align: left; cursor: pointer; }
-.ch-item i { width: 26px; height: 26px; border-radius: 8px; border: 2px solid var(--line); display: flex; align-items: center; justify-content: center; color: transparent; flex: none; }
+/* Chores: 2x3 large person-summary cards (wall display readable at 10 ft).
+   Tap a card to open a detail sheet with large checklist rows. */
+.chores-wrap { height: 100%; padding: var(--pad); display: flex; flex-direction: column; gap: 14px; }
+.ch-grid { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); gap: 14px; min-height: 0; }
+.ch-card { border: 2px solid var(--line); border-radius: var(--r); background: var(--card); padding: 18px 22px; display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 8px; cursor: pointer; text-align: left; overflow: hidden; }
+.ch-card.is-done { border-color: var(--ok); background: rgba(0 163 108 / .08); }
+.ch-card:active { background: var(--paper-2); }
+.ch-card-top { display: flex; align-items: center; gap: 14px; }
+.ch-card-top .avatar { flex: none; }
+.ch-card b { font-size: 28px; font-weight: 800; }
+.ch-card-count { font-size: 48px; font-weight: 800; font-stretch: 62%; line-height: 1; }
+.ch-card-count.is-done { color: var(--ok); }
+.ch-card-sub { font-size: var(--fs-label); font-weight: 700; color: var(--mute); text-transform: uppercase; letter-spacing: .05em; }
+.ch-card-next { font-size: var(--fs-body); font-weight: 700; color: var(--ink-2); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 100%; }
+.ch-note { font-size: var(--fs-min); color: var(--mute); font-weight: 700; }
+.ch-note--warn { color: var(--ink); background: rgba(var(--amber-rgb), .18); border-radius: var(--r-s); padding: 10px 14px; line-height: 1.5; }
+
+/* person detail sheet */
+.ch-sheet { min-width: 560px; }
+.ch-sheet .ch-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.ch-sheet .ch-head b { font-size: 30px; font-weight: 800; }
+.ch-sheet .ch-head .num { font-size: 36px; font-weight: 800; margin-left: auto; color: var(--mute); }
+.ch-items { display: flex; flex-direction: column; gap: 6px; max-height: 480px; overflow-y: auto; }
+.ch-item { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: var(--r-s); background: rgba(var(--ink-rgb), .05); border: none; text-align: left; cursor: pointer; min-height: 52px; }
+.ch-item i { width: 32px; height: 32px; border-radius: 10px; border: 2px solid var(--line); display: flex; align-items: center; justify-content: center; color: transparent; flex: none; }
 .ch-item span { font-size: var(--fs-body); font-weight: 700; }
 .ch-item.is-done { opacity: .5; }
 .ch-item.is-done i { background: var(--c); border-color: var(--c); color: var(--c-ink); }
 .ch-item.is-done span { text-decoration: line-through; }
-.ch-free { font-size: var(--fs-body); color: var(--mute); padding: 8px; }
-.ch-missing { font-size: var(--fs-min); color: var(--ink-2); line-height: 1.5; }
-.ch-note { font-size: var(--fs-min); color: var(--mute); font-weight: 700; letter-spacing: .04em; }
-.ch-note--warn { color: var(--ink); background: rgba(var(--amber-rgb), .18); border-radius: var(--r-s); padding: 10px 14px; line-height: 1.5; }
-.ch-note .num { color: var(--ink); }

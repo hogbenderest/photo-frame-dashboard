@@ -5,12 +5,12 @@
 .cam-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .cam-img img.is-broken { opacity: .3; }
 .cam-demo { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #555; }
-.cam-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 52px; padding: 6px 12px; background: rgba(17 17 17 / .85); color: #fff; display: flex; align-items: center; gap: 10px; }
+.cam-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 56px; padding: 8px 14px; background: rgba(17 17 17 / .85); color: #fff; display: flex; align-items: center; gap: 10px; }
 .cam-bar b { font-size: var(--fs-body); font-weight: 800; flex: none; }
 .cam-chips { display: flex; gap: 5px; overflow: hidden; }
-.cam-chip { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: rgba(255 255 255 / .18); white-space: nowrap; }
+.cam-chip { font-size: var(--fs-min); font-weight: 700; padding: 3px 10px; border-radius: 999px; background: rgba(255 255 255 / .18); white-space: nowrap; }
 .cam-chip.is-on { background: var(--alert); }
-.cam-tap { position: absolute; top: 8px; right: 10px; font-size: 11px; font-weight: 700; color: rgba(255 255 255 / .55); letter-spacing: .06em; text-transform: uppercase; }
+.cam-tap { position: absolute; top: 10px; right: 14px; font-size: var(--fs-min); font-weight: 700; color: rgba(255 255 255 / .55); letter-spacing: .06em; text-transform: uppercase; }
 .sheet--cam .sheet { width: 1040px; max-width: 96vw; }
 .cam-big { display: flex; flex-direction: column; gap: 10px; }
 .cam-big-name { font-size: var(--fs-l); }

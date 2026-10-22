@@ -14,15 +14,15 @@
 .ac-unit-t small { font-size: var(--fs-min); color: var(--mute); }
 
 .ac-group { flex: 1; display: flex; flex-direction: column; gap: 8px; min-height: 0; }
-.ac-gz { flex: 1; display: grid; grid-auto-flow: row; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); grid-template-rows: 1fr; gap: 10px; }
-.ac-zone { position: relative; border: 2px solid var(--line); border-radius: var(--r); background: var(--card); padding: 10px 14px; display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 2px; cursor: pointer; text-align: left; overflow: hidden; }
-.ac-zone.is-on { border-color: var(--amber); background: rgba(var(--amber-rgb), .08); }
+.ac-gz { flex: 1; display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: 1fr 1fr; gap: 14px; }
+.ac-zone { position: relative; border: 3px solid var(--line); border-radius: var(--r); background: var(--card); padding: 16px 20px; display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 4px; cursor: pointer; text-align: left; overflow: hidden; min-height: 140px; }
+.ac-zone.is-on { border-color: var(--amber); background: rgba(var(--amber-rgb), .12); }
 .ac-zone.is-cooling { border-color: var(--ok); background: rgba(0 163 108 / .08); }
 .ac-zone.is-heating { border-color: var(--alert); background: rgba(var(--alert-rgb), .07); }
-.ac-z-name { font-size: var(--fs-min); font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-2); }
-.ac-z-cur { font-size: 38px; font-weight: 800; font-stretch: 62%; line-height: 1; }
-.ac-z-tgt { font-size: var(--fs-min); font-weight: 800; color: var(--mute); text-transform: uppercase; letter-spacing: .04em; }
-.ac-z-vent { display: flex; align-items: center; gap: 4px; font-size: var(--fs-min); font-weight: 800; color: var(--ink-2); }
+.ac-z-name { font-size: var(--fs-label); font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-2); }
+.ac-z-cur { font-size: 48px; font-weight: 800; font-stretch: 62%; line-height: 1; }
+.ac-z-tgt { font-size: var(--fs-label); font-weight: 800; color: var(--mute); text-transform: uppercase; letter-spacing: .04em; }
+.ac-z-vent { display: flex; align-items: center; gap: 4px; font-size: var(--fs-label); font-weight: 800; color: var(--ink-2); }
 .ac-z-vent.is-mute { opacity: .35; }
 
 .ac-sheet { display: flex; flex-direction: column; gap: 10px; min-width: 480px; }

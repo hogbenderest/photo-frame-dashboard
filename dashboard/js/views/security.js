@@ -1,5 +1,5 @@
-// Security: house mode control (hold-to-confirm), doors + garage, leaks,
-// camera activity, sirens (display only, never buttons on a wall panel).
+// Security: large status hero + active alerts (wall display readable at 10 ft).
+// Mode chips at top, then "secure / not secure" hero, then only active alerts.
 (function () {
   'use strict';
   var C = window.HACONFIG, HA = window.HA, V = {};
@@ -8,65 +8,86 @@
     var cur = HA.state(C.security.modeEntity) || 'Home';
     return ['Home', 'Away', 'Night'].map(function (m) {
       return '<button class="sec-chip' + (m === cur ? ' is-active' : '') + '" data-mode="' + m + '">' +
-        App.icon(m === 'Night' ? 'moon' : m === 'Away' ? 'away' : 'home', 22) + m + '</button>';
+        App.icon(m === 'Night' ? 'moon' : m === 'Away' ? 'away' : 'home', 24) + m + '</button>';
     }).join('') +
       '<button class="sec-chip' + (HA.on(C.security.guestMode) ? ' is-active' : '') + '" data-guest="1">' +
-      App.icon('person', 22) + 'Guest' + (HA.on(C.security.guestMode) ? ' on' : '') + '</button>';
+      App.icon('person', 24) + 'Guest' + (HA.on(C.security.guestMode) ? ' on' : '') + '</button>';
   }
 
-  function doorsCard() {
-    var rows = C.security.doors.map(function (d) {
-      var open = HA.on(d.id);
-      var mins = HA.minsSince(d.id);
-      return '<div class="sec-row' + (open ? ' is-open' : '') + '">' +
-        App.icon('door', 22) + '<span>' + App.esc(d.name) + '</span>' +
-        '<b>' + (HA.unavailable(d.id) ? '--' : open ? ('Open' + (mins ? ' \u00B7 ' + App.fmt.mins(mins) : '')) : 'Closed') + '</b></div>';
+  function hero() {
+    var S = C.security;
+    var problems = [];
+    if (HA.on(S.leakAggregate)) problems.push('Water leak detected');
+    if (HA.state(S.garage.cover) && HA.state(S.garage.cover) !== 'closed') problems.push('Garage door ' + HA.state(S.garage.cover));
+    S.doors.forEach(function (d) {
+      if (HA.on(d.id)) problems.push(d.name + ' open');
     });
-    var g = C.security.garage;
-    var gc = HA.state(g.cover) || 'unavailable';
-    var problem = HA.on(g.problem);
-    rows.push('<div class="sec-row sec-garage' + (gc !== 'closed' ? ' is-open' : '') + '">' +
-      App.icon('garage', 22) + '<span>Garage door</span>' +
-      '<b>' + gc + (problem ? ' \u00B7 PROBLEM' : '') + '</b>' +
-      '<span class="sec-gdo"><button class="pill" data-gdo="open"' + (gc === 'open' || gc === 'opening' ? ' disabled' : '') + '>Hold to open</button>' +
-      '<button class="pill" data-gdo="close"' + (gc === 'closed' || gc === 'closing' ? ' disabled' : '') + '>Hold to close</button></span></div>');
-    return '<div class="card sec-card"><div class="label">Doors + garage</div>' + rows.join('') + '</div>';
-  }
+    if (HA.on(S.garage.problem)) problems.push('Garage door problem');
 
-  function leaksCard() {
-    var rows = C.security.leaks.map(function (d) {
-      var wet = HA.on(d.id);
-      return '<div class="sec-row' + (wet ? ' is-wet' : '') + '">' + App.icon('drop', 22) +
-        '<span>' + App.esc(d.name) + '</span><b>' + (HA.unavailable(d.id) ? '--' : wet ? 'LEAK' : 'Dry') + '</b></div>';
-    });
-    return '<div class="card sec-card"><div class="label">Water</div>' + rows.join('') +
-      (HA.on(C.security.leakAggregate) ? '<div class="sec-alert">Leak detected somewhere in the house</div>' : '') +
+    var mode = HA.state(C.security.modeEntity) || 'Home';
+    if (problems.length) {
+      return '<div class="sec-hero is-alert" data-go="security">' +
+        '<span class="sec-hero-icon">' + App.icon('bolt', 48) + '</span>' +
+        '<div><div class="sec-hero-title">' + App.esc(problems[0]) + '</div>' +
+        (problems.length > 1 ? '<div class="sec-hero-sub">+' + (problems.length - 1) + ' more</div>' : '') + '</div>' +
+        '<div class="sec-hero-mode">' + App.icon(mode === 'Night' ? 'moon' : mode === 'Away' ? 'away' : 'home', 30) + ' ' + mode + '</div>' +
+        '</div>';
+    }
+    return '<div class="sec-hero">' +
+      '<span class="sec-hero-icon">' + App.icon('shield', 48) + '</span>' +
+      '<div><div class="sec-hero-title">House secure</div>' +
+      '<div class="sec-hero-sub">All doors closed. No leaks.</div></div>' +
+      '<div class="sec-hero-mode">' + App.icon(mode === 'Night' ? 'moon' : mode === 'Away' ? 'away' : 'home', 30) + ' ' + mode + '</div>' +
       '</div>';
   }
 
-  function activityCard() {
-    var rows = C.security.activity.map(function (a) {
-      var on = HA.on(a.id);
-      var mins = HA.minsSince(a.id);
-      return '<div class="sec-row' + (on ? ' is-on' : '') + '">' + App.icon(on ? 'bolt' : 'clock', 20) +
-        '<span>' + App.esc(a.name) + '</span><b>' + (on ? 'Now' : mins !== null ? App.fmt.mins(mins) + ' ago' : '--') + '</b></div>';
+  function alertRows() {
+    var S = C.security;
+    var rows = [];
+    // doors + garage
+    S.doors.forEach(function (d) {
+      rows.push(secRow(d.id, 'door', d.name, HA.on(d.id), HA.on(d.id) ? 'security' : null));
     });
-    return '<div class="card sec-card"><div class="label">Camera activity</div>' + rows.join('') +
-      '<button class="sec-more" data-go="cameras">See cameras</button></div>';
+    var g = HA.state(S.garage.cover);
+    rows.push(garageRow());
+    // leaks
+    S.leaks.forEach(function (d) {
+      rows.push(secRow(d.id, 'drop', d.name, HA.on(d.id), HA.on(d.id) ? 'security' : null));
+    });
+    // camera activity summary
+    var actCount = 0;
+    S.activity.forEach(function (a) { if (HA.on(a.id)) actCount++; });
+    if (actCount) {
+      rows.push('<button class="sec-alert-row is-warn" data-go="cameras">' + App.icon('camera', 26) +
+        '<span><b>' + actCount + '</b> camera alert' + (actCount > 1 ? 's' : '') + ' active</span></button>');
+    }
+    return rows.join('');
   }
 
-  function sirensCard() {
-    var rows = C.security.sirens.map(function (s) {
-      return '<div class="sec-row sec-siren"><i class="sec-led' + (HA.on(s.id) ? ' is-on' : '') + '"></i><span>' + App.esc(s.name) + '</span><b>siren ' + (HA.on(s.id) ? 'SOUNDING' : 'idle') + '</b></div>';
-    });
-    return '<div class="card sec-card"><div class="label">Sirens \u00B7 display only</div>' + rows.join('') +
-      '<div class="sec-note">Sirens can\u2019t be triggered from this panel.</div></div>';
+  function secRow(id, icon, name, active, go) {
+    var cls = active ? ' is-warn' : ' is-ok';
+    return '<div class="sec-row' + cls + '">' + App.icon(icon, 26) + '<span>' + name + '</span>' +
+      '<b style="margin-left:auto">' + (HA.unavailable(id) ? '--' : active ? 'OPEN' : 'OK') + '</b></div>';
+  }
+
+  function garageRow() {
+    var g = C.security.garage;
+    var gc = HA.state(g.cover) || 'unavailable';
+    var problem = HA.on(g.problem);
+    var cls = gc !== 'closed' ? ' is-warn' : ' is-ok';
+    return '<div class="sec-row' + cls + '">' + App.icon('garage', 26) + '<span>Garage</span>' +
+      '<b style="margin-left:auto">' + gc + (problem ? ' - PROBLEM' : '') + '</b>' +
+      '<span class="sec-gdo">' +
+      '<button class="pill" data-gdo="open"' + (gc === 'open' || gc === 'opening' ? ' disabled' : '') + '>Hold to open</button>' +
+      '<button class="pill" data-gdo="close"' + (gc === 'closed' || gc === 'closing' ? ' disabled' : '') + '>Hold to close</button>' +
+      '</span></div>';
   }
 
   function paint() {
     V.el.innerHTML = '<div class="sec-wrap">' +
       '<div class="sec-modes">' + modeChips() + '</div>' +
-      '<div class="sec-grid">' + doorsCard() + leaksCard() + activityCard() + sirensCard() + '</div>' +
+      hero() +
+      '<div class="sec-alerts">' + alertRows() + '</div>' +
       '</div>';
     bind();
   }

@@ -1,22 +1,47 @@
-/* Room: profile-driven context view (Patio / bedroom zones). */
+/* Room: two-column layout (aircon left, lights/chores right), collapsing to
+   single column for profiles without aircon or with little right content. */
 .rm-wrap { height: 100%; padding: var(--pad); display: flex; flex-direction: column; gap: 14px; overflow: hidden; }
 .rm-title { font-size: var(--fs-l); line-height: 1; }
-.rm-grid { flex: 1; display: flex; flex-direction: column; gap: 14px; min-height: 0; }
-.rm-ac { border: 2px solid var(--line); border-radius: var(--r); background: var(--card); padding: 18px 24px; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; cursor: pointer; text-align: left; }
-.rm-ac.is-on { border-color: var(--amber); background: rgba(var(--amber-rgb), .08); }
-.rm-ac.is-cooling { border-color: var(--ok); background: rgba(0 163 108 / .08); }
-.rm-ac.is-heating { border-color: var(--alert); background: rgba(var(--alert-rgb), .07); }
-.rm-ac-temp { font-size: 72px; font-weight: 800; font-stretch: 62%; line-height: 1; }
+.rm-body { flex: 1; display: flex; gap: 14px; min-height: 0; }
+.rm-left { flex: 5; display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+.rm-right { flex: 4; display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+.rm-body--single { flex-direction: column; }
+.rm-body--single .rm-left, .rm-body--single .rm-right { flex: 1; }
+
+/* aircon zone card - large, fills left column */
+.rm-ac { flex: 1; border: 3px solid var(--line); border-radius: var(--r); background: var(--card); padding: 22px 32px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 8px; cursor: pointer; text-align: left; overflow: hidden; min-height: 0; }
+.rm-ac.is-on { border-color: var(--amber); background: rgba(var(--amber-rgb), .1); }
+.rm-ac.is-cooling { border-color: var(--ok); background: rgba(0 163 108 / .1); }
+.rm-ac.is-heating { border-color: var(--alert); background: rgba(var(--alert-rgb), .09); }
+.rm-ac-unavailable { border-style: dashed; opacity: .5; }
+.rm-ac-temp { font-size: 88px; font-weight: 800; font-stretch: 62%; line-height: 1; }
 .rm-ac-tgt { font-size: var(--fs-body); font-weight: 700; color: var(--ink-2); }
-.rm-ac-name { font-size: var(--fs-min); font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--mute); }
-.rm-sec { border: 2px solid var(--line); border-radius: var(--r); background: var(--card); padding: 14px 18px; }
+.rm-ac-name { font-size: var(--fs-label); font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--mute); }
+
+/* right column sections */
+.rm-sec { border: 2px solid var(--line); border-radius: var(--r); background: var(--card); padding: 16px 22px; }
 .rm-sec small { color: var(--mute); font-weight: 700; }
 .rm-sec--empty { color: var(--mute); }
-.rm-lights { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
-.rm-lights .tile { min-width: 150px; max-width: 220px; }
-.rm-chores { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
-.rm-chore { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 999px; border: 2px solid var(--line); background: var(--paper); cursor: pointer; text-align: left; }
-.rm-chore b { font-size: 18px; font-weight: 800; }
-.rm-chore .num { font-size: 24px; font-weight: 800; margin-left: auto; }
+.rm-lights { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
+.rm-lights .tile { min-width: 180px; max-width: 280px; min-height: 100px; }
+.rm-chores { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
+.rm-chore { display: flex; align-items: center; gap: 12px; padding: 14px 22px; border-radius: 999px; border: 2px solid var(--line); background: var(--paper); cursor: pointer; text-align: left; min-height: 52px; }
+.rm-chore b { font-size: var(--fs-body); font-weight: 800; }
+.rm-chore .num { font-size: 32px; font-weight: 800; margin-left: auto; }
 .rm-chore small { font-size: var(--fs-min); color: var(--mute); font-weight: 700; text-transform: uppercase; }
-.rm-fanstate { margin-top: 8px; font-size: 17px; font-weight: 800; color: var(--ink-2); }
+.rm-fanstate { margin-top: 10px; font-size: var(--fs-body); font-weight: 800; color: var(--ink-2); }
+
+/* aircon sheet - wider, better spacing */
+.ac-sheet { display: flex; flex-direction: column; gap: 12px; min-width: 720px; }
+.ac-sheet-name { font-size: var(--fs-l); line-height: 1.05; }
+.ac-sheet-cur { font-size: var(--fs-body); font-weight: 700; color: var(--ink-2); }
+.ac-steprow { display: flex; align-items: center; gap: 20px; }
+.ac-stepbtn { width: 80px; height: 80px; border-radius: var(--r-s); border: 3px solid var(--ink); background: var(--card); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.ac-stepbtn:active { background: var(--paper-2); }
+.ac-stepval { flex: 1; text-align: center; font-size: 56px; font-weight: 800; font-stretch: 62%; }
+.ac-ventrow { display: flex; gap: 10px; flex-wrap: wrap; }
+.ac-ventbtn { padding: 12px 24px; border-radius: 999px; border: 2px solid var(--line); background: var(--card); font-size: var(--fs-label); font-weight: 800; cursor: pointer; text-transform: capitalize; min-height: 52px; }
+.ac-ventbtn.is-active { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.ac-sheet-actions { display: flex; gap: 10px; margin-top: 8px; }
+.ac-apply { margin-top: 8px; width: 100%; justify-content: center; border-color: var(--ok); color: var(--ok); }
+.ac-note { font-size: var(--fs-min); color: var(--mute); font-weight: 700; line-height: 1.5; }

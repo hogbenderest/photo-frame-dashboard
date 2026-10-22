@@ -1,13 +1,19 @@
-// Room: the context-specific view. The frame's profile decides which room:
-// the living frame's Room tab is the Patio; bedroom frames land here with
-// their own aircon zone, lights and chores. Config-driven, one view for all.
+// Room: profile-driven context view (Patio / bedroom zones).
+// Two-column layout: aircon left, lights/chores right. Collapses to single
+// column when the profile has no aircon (e.g. patio) or little content.
 (function () {
   'use strict';
   var C = window.HACONFIG, HA = window.HA, V = {};
 
   function room() { return C.roomFor ? C.roomFor(C.frameId) : null; }
+  function hasAircon() { var r = room(); return r && r.aircon; }
+  function hasRightContent() {
+    var r = room();
+    return r && ((r.lights && r.lights.some(function (l) { return !HA.unavailable(l.id); })) ||
+                 (r.chores && r.chores.length) || r.kind === 'patio');
+  }
 
-  // ------------------------------------------------------------ aircon zone
+  // ------------------------------------------------------------ aircon
   function zoneCard() {
     var r = room();
     if (!r || !r.aircon) return '';
@@ -17,10 +23,12 @@
     var vent = HA.attr(z.damper, 'current_position');
     var act = HA.attr(z.climate, 'hvac_action');
     var on = HA.state(z.climate) === 'fan_only';
-    return '<button class="rm-ac' + (on ? ' is-on' : '') + (act === 'cooling' ? ' is-cooling' : '') + (act === 'heating' ? ' is-heating' : '') + '" data-aczone="' + r.aircon + '">' +
-      '<span class="rm-ac-temp num">' + (cur !== null ? Math.round(cur) : '--') + '\u00B0</span>' +
+    var un = HA.unavailable(z.climate);
+    var cls = 'rm-ac' + (on ? ' is-on' : '') + (act === 'cooling' ? ' is-cooling' : '') + (act === 'heating' ? ' is-heating' : '') + (un ? ' rm-ac-unavailable' : '');
+    return '<button class="' + cls + '" data-aczone="' + r.aircon + '">' +
+      '<span class="rm-ac-temp num">' + (un ? '--' : cur !== null ? Math.round(cur) + '\u00B0' : '--') + '</span>' +
       '<span class="rm-ac-tgt">Target ' + (tgt !== null ? tgt + '\u00B0' : '--') + ' \u00B7 Vent ' + (vent !== null ? vent + '%' : '--') + '</span>' +
-      '<span class="rm-ac-name">' + App.esc(z.name) + ' \u00B7 ' + (on ? 'Fan on' : 'Off') + '</span>' +
+      '<span class="rm-ac-name">' + App.esc(z.name) + ' \u00B7 ' + (un ? 'Unavailable' : on ? 'Fan on' : 'Off') + '</span>' +
       '</button>';
   }
 
@@ -30,15 +38,18 @@
     var tgt = HA.attr(z.climate, 'temperature');
     var vent = HA.attr(z.damper, 'current_position');
     var on = HA.state(z.climate) === 'fan_only';
+    var un = HA.unavailable(z.climate);
+    var lo = HA.attr(z.climate, 'min_temp') || 16;
+    var hi = HA.attr(z.climate, 'max_temp') || 32;
     var close = App.sheet(
       '<div class="ac-sheet">' +
       '<div class="label">Aircon \u00B7 ' + App.esc(z.name) + '</div>' +
-      '<div class="ac-sheet-cur">Now <b class="num">' + (cur !== null ? cur + '\u00B0' : '--') + '</b></div>' +
+      '<div class="ac-sheet-cur">Now <b class="num">' + (cur !== null ? cur + '\u00B0' : '--') + '</b>' + (un ? ' (unavailable)' : '') + '</div>' +
       '<div class="label">Target</div>' +
       '<div class="ac-steprow">' +
-      '<button class="ac-stepbtn" data-zdec>' + App.icon('minus', 22) + '</button>' +
+      '<button class="ac-stepbtn" data-zdec>' + App.icon('minus', 28) + '</button>' +
       '<span class="ac-stepval num">' + (tgt !== null ? tgt + '\u00B0' : '--') + '</span>' +
-      '<button class="ac-stepbtn" data-zinc>' + App.icon('plus', 22) + '</button>' +
+      '<button class="ac-stepbtn" data-zinc>' + App.icon('plus', 28) + '</button>' +
       '</div>' +
       '<div class="label">Vent (damper)</div>' +
       '<div class="ac-ventrow">' +
@@ -48,15 +59,14 @@
       '</div>' +
       '<div class="ac-sheet-actions">' +
       '<button class="rz-act" data-zfan>' + (on ? 'Turn fan off' : 'Fan only on') + '</button>' +
+      '<button class="rz-act rz-stop" data-closeac>Close</button>' +
       '</div></div>',
       {
         onMount: function (sheet) {
           var val = sheet.querySelector('.ac-stepval');
           var v = tgt || 21;
-          var zlo = HA.attr(z.climate, 'min_temp') || 16;
-          var zhi = HA.attr(z.climate, 'max_temp') || 32;
           function clampSet(d) {
-            v = Math.max(zlo, Math.min(zhi, v + d));
+            v = Math.max(lo, Math.min(hi, v + d));
             val.textContent = v + '\u00B0';
             HA.callService('climate.set_temperature', { entity_id: z.climate, temperature: v });
           }
@@ -73,6 +83,7 @@
             HA.callService('climate.set_hvac_mode', { entity_id: z.climate, hvac_mode: on ? 'off' : 'fan_only' });
             close();
           });
+          sheet.querySelector('[data-closeac]').addEventListener('click', close);
         }
       });
   }
@@ -82,14 +93,14 @@
     var r = room();
     if (!r || !r.lights || !r.lights.length) return '';
     var avail = r.lights.filter(function (l) { return !HA.unavailable(l.id); });
-    if (!avail.length) return '<div class="rm-sec rm-sec--empty"><div class="label">Lights</div><small>None reachable right now</small></div>';
+    if (!avail.length) return '<div class="rm-sec rm-sec--empty"><div class="label">Lights</div><small>None reachable</small></div>';
     return '<div class="rm-sec"><div class="label">Lights</div><div class="rm-lights">' + avail.map(function (l) {
       var on = HA.on(l.id);
       var b = HA.attr(l.id, 'brightness');
       var lvl = b !== null && b !== undefined ? Math.round(b / 255 * 100) : null;
       return '<button class="tile tile--light' + (on ? ' is-on' : '') + '" data-rmlight="' + l.id + '" style="--lvl:' + (on ? (lvl || 100) : 0) + '%">' +
         '<span class="tile-fill"></span>' +
-        '<span class="tile-icon">' + App.icon('bulb', 26) + '</span>' +
+        '<span class="tile-icon">' + App.icon('bulb', 30) + '</span>' +
         '<span class="tile-name">' + App.esc(l.name) + '</span>' +
         '<span class="tile-state num">' + (on ? (lvl !== null ? lvl + '%' : 'On') : 'Off') + '</span></button>';
     }).join('') + '</div></div>';
@@ -105,19 +116,16 @@
       var p = App.person(pid);
       var entityId = p.todo;
       if (!entityId || HA.unavailable(entityId)) return;
-      var items = (HA.attr(entityId, 'items') || []);
-      // items aren't in attributes on live HA (fetched per-view by chores.js);
-      // show the state count instead - enough for the room summary.
       var pending = HA.state(entityId);
       any = true;
       html += '<button class="rm-chore" data-go="tasks" style="' + App.pstyle(p) + '">' +
-        App.avatar(p, 26) + '<b>' + p.name + '</b><span class="num">' + (pending !== null ? pending : '--') + '</span><small>to do</small></button>';
+        App.avatar(p, 30) + '<b>' + p.name + '</b><span class="num">' + (pending !== null ? pending : '--') + '</span><small>to do</small></button>';
     });
     html += '</div></div>';
     return any ? html : '';
   }
 
-  // ------------------------------------------------------------ patio variant
+  // ------------------------------------------------------------ patio
   function patioSection() {
     var r = room();
     if (!r || r.kind !== 'patio') return '';
@@ -127,7 +135,7 @@
     var fanOn = HA.on(P.fan.power) || (fanPreset !== null && fanPreset !== undefined);
     return '<div class="rm-sec"><div class="label">Lights</div><div class="rm-lights">' +
       '<button class="tile tile--light' + (lightsOn ? ' is-on' : '') + '" data-rmlight="' + P.lights[0].id + '" style="--lvl:' + (lightsOn ? 100 : 0) + '%">' +
-      '<span class="tile-fill"></span><span class="tile-icon">' + App.icon('bulb', 26) + '</span>' +
+      '<span class="tile-fill"></span><span class="tile-icon">' + App.icon('bulb', 30) + '</span>' +
       '<span class="tile-name">' + App.esc(P.lights[0].name) + '</span>' +
       '<span class="tile-state num">' + (lightsOn ? 'On' : 'Off') + '</span></button></div></div>' +
       '<div class="rm-sec"><div class="label">Fan <small>RF \u00B7 best-known state</small></div>' +
@@ -145,13 +153,19 @@
     if (!V.el) return;
     var r = room();
     var title = r ? r.name : (C.profile ? C.profile().name : 'Room');
+    var twoCol = hasAircon() && hasRightContent();
+    var left = zoneCard();
+    var right = patioSection() + lightsSection() + choresSection();
+    // If no aircon, put everything in the left column
+    if (!twoCol) {
+      left = left + right;
+      right = '';
+    }
     V.el.innerHTML = '<div class="rm-wrap">' +
       '<div class="rm-head"><div class="label">Room</div><div class="serif rm-title">' + App.esc(title) + '</div></div>' +
-      '<div class="rm-grid">' +
-      zoneCard() +
-      patioSection() +
-      lightsSection() +
-      choresSection() +
+      '<div class="rm-body' + (twoCol ? '' : ' rm-body--single') + '">' +
+      '<div class="rm-left">' + left + '</div>' +
+      (twoCol ? '<div class="rm-right">' + right + '</div>' : '') +
       '</div></div>';
     bind();
   }
@@ -168,7 +182,6 @@
       }
       var f = e.target.closest('[data-pfan]');
       if (f) {
-        // Always call the RF script regardless of mirror state (no feedback).
         HA.callScript(C.patio.fan.scripts[f.dataset.pfan]).catch(function () {
           App.toast('Fan command failed', { tone: 'error', icon: 'bolt' });
         });

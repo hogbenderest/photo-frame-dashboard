@@ -485,3 +485,9 @@ ReferenceError: exists is not defined
     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
     at async syncPhotos (file:///Users/ian/photo-frame-dashboard/scripts/frame-google-sync/sync.mjs:272:5)
     at async sync (file:///Users/ian/photo-frame-dashboard/scripts/frame-google-sync/sync.mjs:289:3)
+photos[helen_ian]: no Drive folder named "Frame Photos Helen Ian" (owned or shared with 2lawlerst@gmail.com). Create it and drop photos in.
+ReferenceError: exists is not defined
+    at syncPhotosRoom (file:///Users/ian/photo-frame-dashboard/scripts/frame-google-sync/sync.mjs:234:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async syncPhotos (file:///Users/ian/photo-frame-dashboard/scripts/frame-google-sync/sync.mjs:272:5)
+    at async sync (file:///Users/ian/photo-frame-dashboard/scripts/frame-google-sync/sync.mjs:289:3)

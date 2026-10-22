@@ -1,12 +1,6 @@
-// Chores (HIMACK): definitions live in the "Chore Definitions" to-do list
-// (editable from any phone via the HA app), each item plain text:
-//   Kyle | Make bed | daily
-//   HIMACK | Bins out | Thu | 1        (4th segment = stars, optional)
-// Rules: tick a definition to pause it; delete the item to remove the rule;
-// malformed rows are listed on the view. Items are keyed by uid for
-// update/remove (HA's `item` field accepts uid or summary; uid is exact even
-// with duplicate summaries). Once a day the completed items are cleared so
-// summaries never collide across days.
+// Chores (HIMACK): large person-summary cards (wall display readable at 10 ft).
+// Tap a card to open a detail sheet with large checklist rows.
+// Definitions live in the "Chore Definitions" to-do list: `Who | Chore | Day`.
 (function () {
   'use strict';
   var C = window.HACONFIG, HA = window.HA, V = { items: {}, defs: null, errs: [] };
@@ -33,161 +27,159 @@
   function parseDefinitions(items) {
     var out = [], errs = [];
     items.forEach(function (it) {
-      if (it.status === 'completed') return; // ticked definition = paused
+      if (it.status === 'completed') return;
       var parts = it.summary.split('|').map(function (p) { return p.trim(); });
-      if (parts.length < 3) { errs.push(it.summary + ' \u00B7 expected "Who | Chore | Day"'); return; }
+      if (parts.length < 3) { errs.push(it.summary + ' - expected "Who | Chore | Day"'); return; }
       var who = parts[0].toLowerCase();
-      if (who !== 'himack' && !App.person(who).id) { errs.push(parts[0] + ' \u00B7 unknown person (use ' + App.state.people.map(function (p) { return p.name; }).join('/') + ' or HIMACK)'); return; }
+      if (who !== 'himack' && !App.person(who).id) { errs.push(parts[0] + ' - unknown person'); return; }
       var day = parseDay(parts[2]);
-      if (day === null) { errs.push(it.summary + ' \u00B7 unknown day "' + parts[2] + '"'); return; }
-      out.push({ who: who, title: parts[1], day: day, stars: parts[3] ? parseInt(parts[3], 10) || 0 : 0 });
+      if (day === null) { errs.push(it.summary + ' - unknown day "' + parts[2] + '"'); return; }
+      out.push({ who: who, title: parts[1], day: day });
     });
     return { defs: out, errs: errs };
   }
 
-  function entityIdFor(who) {
-    return who === 'himack' ? C.chores.familyTodo : App.person(who).todo;
-  }
-
+  function entityIdFor(who) { return who === 'himack' ? C.chores.familyTodo : App.person(who).todo; }
   function fetchList(entityId) {
     if (!entityId || HA.unavailable(entityId)) return Promise.resolve();
-    return HA.todoItems(entityId).then(function (items) {
-      V.items[entityId] = items;
-    }).catch(function () {
-      if (!V.items[entityId]) V.items[entityId] = [];
-    });
+    return HA.todoItems(entityId).then(function (items) { V.items[entityId] = items; })
+      .catch(function () { if (!V.items[entityId]) V.items[entityId] = []; });
   }
-
-  // Once per calendar day: clear completed items so a summary never appears
-  // on two days at once (summary-keyed lookups stay unambiguous).
-  function dailyCleanup() {
-    var key = 'frame-chore-cleanup';
-    var today = todayISO();
-    try {
-      if (localStorage.getItem(key) === today) return;
-      localStorage.setItem(key, today);
-    } catch (e) { return; }
-    Object.keys(V.items).forEach(function (entityId) {
-      if (V.items[entityId] && V.items[entityId].some(function (it) { return it.status === 'completed'; })) {
-        HA.callService('todo.remove_completed_items', { entity_id: entityId })
-          .then(function () { return fetchList(entityId); });
-      }
-    });
-  }
-
-  // Ensure today's due items exist. Run after all lists are fetched.
   function reconcile(defs) {
     defs.forEach(function (d) {
-      if (!dueToday(d.day)) return;
       var entityId = entityIdFor(d.who);
       if (!entityId || HA.unavailable(entityId)) return;
-      var today = todayISO();
+      if (!dueToday(d.day)) return;
       var exists = (V.items[entityId] || []).some(function (it) {
-        return it.summary === d.title && (!it.due_date || it.due_date <= today);
+        return it.summary === d.title && (!it.due_date || it.due_date <= todayISO());
       });
-      if (!exists) {
-        HA.callService('todo.add_item', { entity_id: entityId, item: d.title, due_date: today })
-          .then(function () { return fetchList(entityId); })
-          .then(function () { if (App.current === 'tasks' && V.el) paint(); });
-      }
+      if (!exists) HA.callService('todo.add_item', { entity_id: entityId, item: d.title, due_date: todayISO() });
     });
   }
 
-  function personColumn(p) {
+  function personCard(p) {
     var entityId = p.todo;
-    if (!entityId || HA.unavailable(entityId)) {
-      return '<div class="ch-col" style="' + App.pstyle(p) + '">' +
-        '<div class="ch-head">' + App.avatar(p, 34) + '<b>' + p.name + '</b></div>' +
-        '<div class="ch-missing"><small>Missing <b class="num">' + App.esc(entityId || 'todo.chores_' + p.id) + '</b>. Create it in HA: Settings \u2192 Helpers \u2192 Local to-do list.</small></div></div>';
-    }
+    if (!entityId || HA.unavailable(entityId)) return missingCard(p, entityId);
     var items = V.items[entityId];
-    if (!items) {
-      return '<div class="ch-col" style="' + App.pstyle(p) + '">' +
-        '<div class="ch-head">' + App.avatar(p, 34) + '<b>' + p.name + '</b></div>' +
-        '<div class="ch-missing"><small>Loading\u2026</small></div></div>';
-    }
+    if (!items) return loadingCard(p);
     var today = todayISO();
     var due = items.filter(function (it) { return it.status !== 'completed' && (!it.due_date || it.due_date <= today); });
     var done = items.filter(function (it) { return it.status === 'completed'; });
     var total = due.length + done.length;
-    return '<div class="ch-col" style="' + App.pstyle(p) + '">' +
-      '<div class="ch-head">' + App.avatar(p, 34) + '<b>' + p.name + '</b>' +
-      '<span class="ch-count num' + (total && done.length === total ? ' is-done' : '') + '">' + done.length + '/' + total + '</span></div>' +
-      '<div class="ch-items">' +
-      (due.concat(done).slice(0, 10).map(function (it) {
-        var isDone = it.status === 'completed';
-        var key = it.uid || it.summary;
-        return '<button class="ch-item' + (isDone ? ' is-done' : '') + '" data-check="' + App.esc(entityId) + '" data-key="' + App.esc(key) + '" data-status="' + it.status + '">' +
-          '<i>' + App.icon('check', 18) + '</i><span>' + App.esc(it.summary) + '</span></button>';
-      }).join('') || '<div class="ch-free serif"><i>Nothing due</i></div>') +
-      '</div></div>';
+    var next = due.length ? due[0].summary : null;
+    return '<button class="ch-card' + (total && done.length === total ? ' is-done' : '') + '" data-person="' + p.id + '" style="' + App.pstyle(p) + '">' +
+      '<div class="ch-card-top">' + App.avatar(p, 44) + '<b>' + p.name + '</b></div>' +
+      '<span class="ch-card-count num' + (total && done.length === total ? ' is-done' : '') + '">' + (done.length + '/' + total) + '</span>' +
+      '<span class="ch-card-sub">' + (done.length === total && total > 0 ? 'All done' : due.length + ' to do') + '</span>' +
+      (next ? '<span class="ch-card-next">Next: ' + App.esc(next) + '</span>' : '') +
+      '</button>';
+  }
+  function missingCard(p, entityId) {
+    return '<div class="ch-card" style="' + App.pstyle(p) + '">' +
+      '<div class="ch-card-top">' + App.avatar(p, 44) + '<b>' + p.name + '</b></div>' +
+      '<span class="ch-card-sub">Missing ' + (entityId || 'todo list') + '</span></div>';
+  }
+  function loadingCard(p) {
+    return '<div class="ch-card" style="' + App.pstyle(p) + '">' +
+      '<div class="ch-card-top">' + App.avatar(p, 44) + '<b>' + p.name + '</b></div>' +
+      '<span class="ch-card-sub">Loading...</span></div>';
   }
 
-  function familyColumn() {
+  function himackCard() {
     var p = App.person('himack');
     var entityId = C.chores.familyTodo;
-    if (!entityId || HA.unavailable(entityId)) return ''; // optional list
+    if (!entityId || HA.unavailable(entityId)) return '';
     var items = V.items[entityId] || [];
-    return '<div class="ch-col ch-col--family" style="' + App.pstyle(p) + '">' +
-      '<div class="ch-head">' + App.avatar(p, 30) + '<b>HIMACK</b></div>' +
-      '<div class="ch-items">' + (items.slice(0, 8).map(function (it) {
+    var pending = HA.state(entityId);
+    return '<button class="ch-card" data-person="himack" style="' + App.pstyle(p) + '">' +
+      '<div class="ch-card-top">' + App.avatar(p, 44) + '<b>HIMACK</b></div>' +
+      '<span class="ch-card-count num">' + (pending !== null ? pending : '--') + '</span>' +
+      '<span class="ch-card-sub">shared</span>' +
+      '</button>';
+  }
+
+  function personSheet(pid) {
+    var p = App.person(pid);
+    var entityId = pid === 'himack' ? C.chores.familyTodo : p.todo;
+    if (!entityId || HA.unavailable(entityId)) return;
+    var items = V.items[entityId] || [];
+    var today = todayISO();
+    var due = items.filter(function (it) { return it.status !== 'completed' && (!it.due_date || it.due_date <= today); });
+    var done = items.filter(function (it) { return it.status === 'completed'; });
+    var close = App.sheet(
+      '<div class="ch-sheet">' +
+      '<div class="label">Chores</div>' +
+      '<div class="ch-head">' + App.avatar(p, 40) + '<b>' + (pid === 'himack' ? 'HIMACK' : p.name) + '</b>' +
+      '<span class="num">' + done.length + '/' + (due.length + done.length) + '</span></div>' +
+      '<div class="ch-items">' + due.concat(done).map(function (it) {
         var isDone = it.status === 'completed';
         var key = it.uid || it.summary;
         return '<button class="ch-item' + (isDone ? ' is-done' : '') + '" data-check="' + App.esc(entityId) + '" data-key="' + App.esc(key) + '" data-status="' + it.status + '">' +
           '<i>' + App.icon('check', 18) + '</i><span>' + App.esc(it.summary) + '</span></button>';
-      }).join('') || '<div class="ch-free serif"><i>Nothing</i></div>') + '</div>' +
-      '</div>';
+      }).join('') + '</div>' +
+      '</div>',
+      {
+        onMount: function (sheet) {
+          sheet.addEventListener('click', function (e) {
+            var it = e.target.closest('[data-check]');
+            if (!it) return;
+            var to = it.dataset.status === 'completed' ? 'needs_action' : 'completed';
+            HA.callService('todo.update_item', { entity_id: it.dataset.check, item: it.dataset.key, status: to })
+              .then(function () { HA.invalidateTodo(it.dataset.check); return fetchList(it.dataset.check); })
+              .then(function () { close(); if (App.current === 'tasks') paint(); });
+          });
+        }
+      });
   }
 
   function definitionsNote() {
     var def = C.chores.definitionsEntity;
-    var hint = 'Define recurring chores in the <b>Chore Definitions</b> list from any phone: <span class="num">Who | Chore | Day</span> e.g. <span class="num">Kyle | Make bed | daily</span>. Tick a definition to pause it; delete it to remove the rule.';
+    var hint = 'Add recurring chores from any phone: <span class="num">Who | Chore | Day</span> in the Chore Definitions list.';
     if (HA.unavailable(def)) {
-      return '<div class="ch-note ch-note--warn">Missing <b class="num">' + App.esc(def) + '</b>. Create it in HA: Settings \u2192 Helpers \u2192 Local to-do list, then add definitions.</div>';
+      return '<div class="ch-note ch-note--warn">Missing <b>' + App.esc(def) + '</b>. Create it in HA Helpers, then add definitions.</div>';
     }
     var n = (V.defs || []).length;
-    var html = '<div class="ch-note">' + hint + ' <b class="num">' + n + '</b> definition' + (n === 1 ? '' : 's') + ' active.</div>';
+    var html = n
+      ? '<div class="ch-note">' + n + ' definition' + (n === 1 ? '' : 's') + ' active. ' + hint + '</div>'
+      : '<div class="ch-note">' + hint + '</div>';
     if (V.errs && V.errs.length) {
-      html += '<div class="ch-note ch-note--warn">Couldn\u2019t read ' + V.errs.length + ' definition(s):<br>' + V.errs.map(App.esc).join('<br>') + '</div>';
+      html += '<div class="ch-note ch-note--warn">Couldn\'t read ' + V.errs.length + ' definition(s):<br>' + V.errs.map(App.esc).join('<br>') + '</div>';
     }
     return html;
   }
 
   function paint() {
     if (!V.el) return;
-    var fam = familyColumn();
-    V.el.innerHTML = '<div class="chores-wrap' + (fam ? ' has-family' : '') + '">' +
-      '<div class="ch-grid">' + App.state.people.map(personColumn).join('') + fam + '</div>' +
+    var cards = App.state.people.map(personCard);
+    var hm = himackCard();
+    if (hm) cards.push(hm);
+    V.el.innerHTML = '<div class="chores-wrap">' +
+      '<div class="ch-grid">' + cards.slice(0, 6).join('') + '</div>' +
+      (hm ? '' : '') +
       definitionsNote() +
       '</div>';
     bind();
   }
 
+  function bind() {
+    if (V.el._bound) return; V.el._bound = true;
+    V.el.addEventListener('click', function (e) {
+      var c = e.target.closest('[data-person]');
+      if (c) personSheet(c.dataset.person);
+    });
+  }
+
   function loadAll() {
     var ids = {};
+    C.chores.recurrences.forEach(function (r) { ids[entityIdFor(r.who)] = true; });
     App.state.people.forEach(function (p) { ids[p.todo] = true; });
     ids[C.chores.familyTodo] = true;
     ids[C.chores.definitionsEntity] = true;
     return Promise.all(Object.keys(ids).map(fetchList)).then(function () {
-      dailyCleanup();
       var parsed = parseDefinitions(V.items[C.chores.definitionsEntity] || []);
       V.defs = parsed.defs; V.errs = parsed.errs;
       reconcile(parsed.defs);
       if (App.current === 'tasks' && V.el) paint();
-    });
-  }
-
-  function bind() {
-    if (V.el._bound) return; V.el._bound = true;
-    V.el.addEventListener('click', function (e) {
-      var it = e.target.closest('[data-check]');
-      if (!it) return;
-      var to = it.dataset.status === 'completed' ? 'needs_action' : 'completed';
-      // HA's `item` accepts the uid (exact, duplicate-safe) or the summary.
-      HA.callService('todo.update_item', { entity_id: it.dataset.check, item: it.dataset.key, status: to })
-        .then(function () { HA.invalidateTodo(it.dataset.check); return fetchList(it.dataset.check); })
-        .then(function () { if (App.current === 'tasks' && V.el) paint(); })
-        .catch(function () { App.toast('Couldn\u2019t update the chore', { tone: 'error', icon: 'bolt' }); });
     });
   }
 

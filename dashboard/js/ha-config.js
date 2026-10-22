@@ -261,7 +261,7 @@
         { id: 'calendar.holidays_in_australia', name: 'Holidays', color: '#00A36C', strip: true },
         { id: 'calendar.opensprinkler_schedule', name: 'Irrigation', color: '#7A756B', strip: false }
       ],
-      days: 14
+      days: 7
     },
 
     // Unread mail is written by the Mac-side Google sync script

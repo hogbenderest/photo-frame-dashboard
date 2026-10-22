@@ -25,7 +25,7 @@
   --c-rgb: var(--ink-rgb);
   --c-ink: #FFFFFF;
 
-  /* type */
+  /* type - wall display: readable from ~10 ft */
   --sans: 'Archivo', 'Roboto Condensed', 'Roboto', system-ui, sans-serif;
   --serif: 'Instrument Serif', 'Noto Serif', Georgia, serif;
   --fs-clock: 150px;
@@ -33,9 +33,9 @@
   --fs-xl: 56px;
   --fs-l: 34px;
   --fs-m: 24px;
-  --fs-body: 20px;
-  --fs-label: 15px;
-  --fs-min: 14px;
+  --fs-body: 22px;
+  --fs-label: 18px;
+  --fs-min: 16px;
 
   /* shape + space */
   --r: 18px;
