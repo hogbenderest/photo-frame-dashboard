@@ -320,8 +320,10 @@
       // Landing correction: App.start may have navigated before ha.json
       // resolved (defaulting to 'living'). If this frame's profile says the
       // landing view differs and the user hasn't navigated yet, honor it.
+      // The hash check accepts '#home' because that's the default landing,
+      // not a user navigation.
       var prof = C.profile();
-      if (prof.landing !== 'home' && !location.hash && (App.current === 'home' || App.current === null)) {
+      if (prof.landing !== 'home' && (location.hash === '' || location.hash === '#home') && (App.current === 'home' || App.current === null)) {
         App.go(prof.landing);
       }
       connect();

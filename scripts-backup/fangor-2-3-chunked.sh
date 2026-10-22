@@ -12,7 +12,7 @@ STAT=/usr/bin/stat
 SHASUM=/usr/bin/shasum
 GREP=/usr/bin/grep
 
-CHUNK=64            # MiB per chunk
+CHUNK=32            # MiB per chunk (completes in ~140s at observed rate, well under watchdog)
 TOTAL=1073741824    # system partition bytes
 NCHUNKS=$((TOTAL / CHUNK / 1048576))   # 16
 
@@ -26,24 +26,37 @@ chunk_unit() {
   wake $S
   for i in $(seq 0 $((NCHUNKS-1))); do
     want=$((CHUNK * 1048576))
-    got=$($STAT -f %z sys-chunk-$i.img 2>/dev/null || echo 0)
+    got=$($STAT -f %z sys32-chunk-$i.img 2>/dev/null || echo 0)
     if [ "$got" = "$want" ]; then echo "  chunk $i: already verified, skipping"; continue; fi
     for attempt in 1 2 3 4 5 6; do
       wake $S
       skip=$((i * CHUNK))
-      $ADB -s $S exec-out "su 0 sh -c 'dd if=/dev/block/mmcblk0p7 bs=1048576 skip=$skip count=$CHUNK 2>/dev/null'" 2>/dev/null > sys-chunk-$i.img
-      got=$($STAT -f %z sys-chunk-$i.img 2>/dev/null || echo 0)
+      # watchdog: the XR819 leaves hung streams half-open forever; kill after
+      # 300s so the retry loop actually loops (no coreutils timeout on macOS,
+      # so use a zsh background job + kill pattern)
+      ( $ADB -s $S exec-out "su 0 sh -c 'dd if=/dev/block/mmcblk0p7 bs=1048576 skip=$skip count=$CHUNK 2>/dev/null'" 2>/dev/null > sys32-chunk-$i.img ) &
+      local pid=$!
+      # radio keepalive: ping the gateway FROM THE FRAME (adb shell keeps its
+      # own radio transmitting; the Mac's pings are ignored). Runs while the
+      # dd stream is alive, 5s interval.
+      ( while kill -0 $pid 2>/dev/null; do sleep 5; $ADB -s $S shell "ping -c 1 -W 1 192.168.86.1" >/dev/null 2>&1; done ) &
+      local kapid=$!
+      ( sleep 300; kill -9 $pid 2>/dev/null ) &
+      local wpid=$!
+      wait $pid 2>/dev/null
+      kill $wpid $kapid 2>/dev/null
+      got=$($STAT -f %z sys32-chunk-$i.img 2>/dev/null || echo 0)
       if [ "$got" = "$want" ]; then echo "  chunk $i: OK (attempt $attempt)"; break; fi
       echo "  chunk $i: bad size ($got/$want, attempt $attempt)"
     done
     if [ "$got" != "$want" ]; then echo "  chunk $i FAILED after 6 attempts; re-run this script to resume"; return 1; fi
   done
 
-  cat sys-chunk-*.img > system.img
+  cat sys32-chunk-*.img > system.img
   got=$($STAT -f %z system.img)
   if [ "$got" = "$TOTAL" ]; then
     echo "  system.img assembled: $got bytes"
-    rm -f sys-chunk-*.img
+    rm -f sys32-chunk-*.img
   else
     echo "  assembly size mismatch ($got); keeping chunks for manual recovery"; return 1
   fi
