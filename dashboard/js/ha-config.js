@@ -58,6 +58,9 @@
         { id: 'kyle', name: "Kyle's Room", lights: [
           { id: 'light.ikea_of_sweden_tradfri_bulb_e14_cws_globe_806lm', name: 'Sphere Light', brightness: true }
         ]},
+        { id: 'alexa', name: "Alexa's Room", lights: [
+          { id: 'switch.alexa_light', name: 'Alexa Light', brightness: false }
+        ]},
         { id: 'upstairs', name: 'Upstairs Landing', lights: [
           { id: 'light.paper_lamp_tradfri_globe_806lm', name: 'Paper Lamp', brightness: true },
           { id: 'light.wled_gledopto_main', name: 'Bookcase Light', brightness: true },
@@ -325,9 +328,11 @@
                              { id: 'switch.smart_plug_20041792822229251h3948e1e91a3cd4_outlet', name: 'Bed Lamp Ian', brightness: false },
                              { id: 'switch.smart_plug_20041747068605251h3948e1e91a3dba_outlet', name: 'Bed Lamp Helen', brightness: false }],
                    chores: ['helen', 'ian'] },
-      // No lights: her room has none in HA (light.alexa_lamp is a Front
-      // Lounge device - it lives in the frontlounge room def, not here).
+      // Her room light is the Zigbee plug switch (switch.alexa_light).
+      // Do not confuse it with light.alexa_lamp - that is a FRONT LOUNGE
+      // device (it stays in the frontlounge room def + lights.areas).
       alexa:     { name: 'Alexa', aircon: 'alexa',
+                   lights: [{ id: 'switch.alexa_light', name: 'Alexa Light', brightness: false }],
                    media: { id: 'media_player.chromecast7886', name: 'TV' },
                    chores: ['alexa'] },
       kyle:      { name: 'Kyle', aircon: 'kyle', lights: [{ id: 'light.ikea_of_sweden_tradfri_bulb_e14_cws_globe_806lm', name: 'Sphere Light', brightness: true }], chores: ['kyle'] },
