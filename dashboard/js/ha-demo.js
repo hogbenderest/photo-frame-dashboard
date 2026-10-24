@@ -28,7 +28,7 @@
   })() }));
   S(st('sensor.sun_next_rising', iso(1, 5, 34)));
   S(st('sensor.sun_next_setting', iso(0, 18, 29)));
-  S(st('climate.front_lounge', 'off', { current_temperature: 22.4, friendly_name: 'Front Lounge' }));
+  S(st('climate.front_lounge', 'off', { current_temperature: 20.5, temperature: 25.2, min_temp: 1, max_temp: 37, hvac_modes: ['off', 'cool', 'heat'], hvac_action: 'off', friendly_name: 'Front Lounge' }));
   S(st('sensor.power_production_now', '4838', { unit_of_measurement: 'W', friendly_name: 'Solar now' }));
   S(st('sensor.energy_production_today', '27.149', { unit_of_measurement: 'kWh', friendly_name: 'Solar today' }));
   S(st('sensor.energy_production_today_remaining', '10.816', { unit_of_measurement: 'kWh', friendly_name: 'Solar remaining' }));
@@ -103,6 +103,7 @@
   S(st('sun.sun', 'above_horizon', { friendly_name: 'Sun' }));
 
   // patio (demo: lights + RF fan mirrors)
+  S(st('fan.patio_fan', 'off', { friendly_name: 'Patio Fan' }));
   S(st('input_boolean.patio_fan_power_state', 'off', { friendly_name: 'Patio Fan Power State' }));
   // mail sensor demo state incl. starred (user-curated important set)
   S(st('sensor.frame_mail_unread', '3', {
@@ -115,7 +116,8 @@
     starred: MAIL_STARRED
   }));
 
-  // aircon (demo states mirror the live AirTouch shapes)  S(st('input_number.aircon_whole_house_target', '21.0', { min: 16, max: 30, step: 1, friendly_name: 'Aircon Whole House Target' }));
+  // aircon (demo states mirror the live AirTouch shapes)
+  S(st('input_number.aircon_whole_house_target', '21.0', { min: 16, max: 30, step: 1, friendly_name: 'Aircon Whole House Target' }));
   S(st('climate.ac_0', 'off', { hvac_modes: ['off', 'auto', 'cool', 'dry', 'fan_only', 'heat'], fan_modes: ['low', 'medium', 'high', 'auto'], current_temperature: 27, temperature: 23, fan_mode: 'low', friendly_name: 'Main Unit' }));
   S(st('climate.ac_1', 'off', { hvac_modes: ['off', 'auto', 'cool', 'dry', 'fan_only', 'heat'], fan_modes: ['low', 'medium', 'high', 'auto'], current_temperature: 26, temperature: 22, fan_mode: 'auto', friendly_name: 'Downstairs' }));
   [['helen_ian', 22.5, 21, 50], ['connor', 23, 21, 40], ['dining', 24, 22, 60], ['kitchen', 25, 22, 55], ['study', 23.5, 21, 45], ['upstairs', 26, 22, 35],

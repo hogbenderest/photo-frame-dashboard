@@ -1,5 +1,7 @@
-/* Room: two-column layout (aircon left, lights/chores right), collapsing to
-   single column for profiles without aircon or with little right content. */
+/* Room: single-room profiles use the two-column layout (aircon left,
+   lights/chores right), collapsing to a single column for profiles without
+   aircon or with little right content. Multi-room profiles stack sections on
+   one page (see .rm-body--multi below). */
 .rm-wrap { height: 100%; padding: var(--pad); display: flex; flex-direction: column; gap: 14px; overflow: hidden; }
 .rm-title { font-size: var(--fs-l); line-height: 1; }
 .rm-body { flex: 1; display: flex; gap: 14px; min-height: 0; }
@@ -30,6 +32,14 @@
 .rm-chore .num { font-size: 32px; font-weight: 800; margin-left: auto; }
 .rm-chore small { font-size: var(--fs-min); color: var(--mute); font-weight: 700; text-transform: uppercase; }
 .rm-fanstate { margin-top: 10px; font-size: var(--fs-body); font-weight: 800; color: var(--ink-2); }
+
+/* multi-room one-page layout (living + study frames): sections stack top to
+   bottom, aircon cards sit in a responsive row. Scrolls only if a future
+   profile packs in more than fits. */
+.rm-body--multi { flex-direction: column; overflow-y: auto; }
+.rm-body--multi .rm-sec { flex-shrink: 0; }
+.rm-acgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; margin-top: 10px; }
+.rm-acgrid .rm-ac { flex: none; min-height: 170px; }
 
 /* aircon sheet - wider, better spacing */
 .ac-sheet { display: flex; flex-direction: column; gap: 12px; min-width: 720px; }

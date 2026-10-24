@@ -301,14 +301,21 @@
     // Every frame runs the same APK; /ha.json carries {"frame": "<id>"}.
     // Unknown or missing id falls back to 'living' (the pre-profile build
     // deployed to the living room has no "frame" key).
+    //
+    // Room defs: aircon: '<aircon.zones key>' = AirTouch ducted zone
+    // (climate + damper); climate: '<entity>' = standalone IR climate (Front
+    // Lounge split); lights: tiles on the Room view; kind: 'patio' pulls the
+    // string lights + RF fan from the patio block above; chores: person ids.
+    // Profiles list ONE OR MORE rooms: multi-room profiles (living, study)
+    // render every listed room's controls on a single Room page - no tabs.
     profiles: {
-      living:    { name: 'Living Room', landing: 'home', room: 'patio',     photosManifest: '/local/frame-photos/frame-photos.js' },
-      helen_ian: { name: 'Helen + Ian', landing: 'room', room: 'helen_ian', photosManifest: '/local/frame-photos/helen_ian/frame-photos.js', nightMode: true },
-      alexa:     { name: 'Alexa',       landing: 'room', room: 'alexa',     photosManifest: '/local/frame-photos/alexa/frame-photos.js' },
-      kyle:      { name: 'Kyle',        landing: 'room', room: 'kyle',      photosManifest: '/local/frame-photos/kyle/frame-photos.js' },
-      marcus:    { name: 'Marcus',      landing: 'room', room: 'marcus',    photosManifest: '/local/frame-photos/marcus/frame-photos.js' },
-      connor:    { name: 'Connor',      landing: 'room', room: 'connor',    photosManifest: '/local/frame-photos/connor/frame-photos.js' },
-      study:     { name: 'Study',       landing: 'room', room: 'study',     photosManifest: '/local/frame-photos/study/frame-photos.js' }
+      living:    { name: 'Living Room', landing: 'home', rooms: ['patio', 'frontlounge', 'family', 'kitchen', 'dining', 'theatre'], photosManifest: '/local/frame-photos/frame-photos.js' },
+      helen_ian: { name: 'Helen + Ian', landing: 'room', rooms: ['helen_ian'], photosManifest: '/local/frame-photos/helen_ian/frame-photos.js', nightMode: true },
+      alexa:     { name: 'Alexa',       landing: 'room', rooms: ['alexa'],     photosManifest: '/local/frame-photos/alexa/frame-photos.js' },
+      kyle:      { name: 'Kyle',        landing: 'room', rooms: ['kyle'],      photosManifest: '/local/frame-photos/kyle/frame-photos.js' },
+      marcus:    { name: 'Marcus',      landing: 'room', rooms: ['marcus'],    photosManifest: '/local/frame-photos/marcus/frame-photos.js' },
+      connor:    { name: 'Connor',      landing: 'room', rooms: ['connor'],    photosManifest: '/local/frame-photos/connor/frame-photos.js' },
+      study:     { name: 'Study',       landing: 'room', rooms: ['study', 'upstairs'], photosManifest: '/local/frame-photos/study/frame-photos.js' }
     },
     rooms: {
       patio:     { name: 'Patio', kind: 'patio' },
@@ -321,7 +328,19 @@
       kyle:      { name: 'Kyle', aircon: 'kyle', lights: [{ id: 'light.ikea_of_sweden_tradfri_bulb_e14_cws_globe_806lm', name: 'Sphere Light', brightness: true }], chores: ['kyle'] },
       marcus:    { name: 'Marcus', aircon: 'marcus', lights: [], chores: ['marcus'] },
       connor:    { name: 'Connor', aircon: 'connor', lights: [], chores: ['connor'] },
-      study:     { name: 'Study', aircon: 'study', lights: [{ id: 'light.keyboard_light_strip', name: 'Keyboard Light Strip', brightness: true }], chores: [] }
+      study:     { name: 'Study', aircon: 'study', lights: [{ id: 'light.keyboard_light_strip', name: 'Keyboard Light Strip', brightness: true }], chores: [] },
+      // Living-room-frame rooms (downstairs areas around the frame itself)
+      frontlounge: { name: 'Front Lounge', climate: 'climate.front_lounge',
+                     lights: [{ id: 'light.alexa_lamp', name: 'Alexa Lamp', brightness: true }] },
+      family:    { name: 'Family Room', lights: [{ id: 'light.tv_light_strip', name: 'TV Light Strip', brightness: true }] },
+      kitchen:   { name: 'Kitchen', aircon: 'kitchen' },
+      dining:    { name: 'Dining Room', aircon: 'dining' },
+      theatre:   { name: 'Theatre', aircon: 'theatre' },
+      // Study-frame extra room: the landing is right outside the study
+      upstairs:  { name: 'Upstairs Landing', aircon: 'upstairs',
+                   lights: [{ id: 'light.paper_lamp_tradfri_globe_806lm', name: 'Paper Lamp', brightness: true },
+                            { id: 'light.wled_gledopto_main', name: 'Bookcase Light', brightness: true },
+                            { id: 'light.wled_second_2', name: 'Secondary LED', brightness: true }] }
     },
 
     lists: {
@@ -360,6 +379,9 @@
       function add(id) { if (id && ids.indexOf(id) < 0) ids.push(id); }
       var t = this.today; for (var k in t) add(t[k]);
       this.lights.areas.forEach(function (a) { a.lights.forEach(function (l) { add(l.id); }); });
+      var PT = this.patio; // string lights + RF fan mirrors (state only; power via scripts)
+      PT.lights.forEach(function (l) { add(l.id); });
+      add(PT.fan.state); add(PT.fan.power);
       var s = this.security;
       add(s.modeEntity); add(s.guestMode); add(s.leakAggregate);
       s.doors.forEach(function (d) { add(d.id); });
@@ -411,8 +433,12 @@
   };
   window.HACONFIG.frameId = 'living'; // overwritten by ha.js once ha.json resolves
   window.HACONFIG.profile = function () { return HACONFIG.profileFor(HACONFIG.frameId); };
-  window.HACONFIG.roomFor = function (frameId) {
+  // Rooms for a frame: profiles list one or more room ids (rooms: []).
+  // Legacy single-key profiles (room: 'x') still resolve to a one-element
+  // list. Unknown room ids are dropped, never fatal.
+  window.HACONFIG.roomsFor = function (frameId) {
     var p = HACONFIG.profileFor(frameId);
-    return HACONFIG.rooms[p.room] || null;
+    var list = (p.rooms && p.rooms.length ? p.rooms : (p.room ? [p.room] : []));
+    return list.map(function (id) { return HACONFIG.rooms[id] || null; }).filter(Boolean);
   };
 })();
