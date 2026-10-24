@@ -4,12 +4,13 @@
 # Run with:  bash ~/photo-frame-dashboard/scripts/install-frame-tokens.sh [frame]
 #   no argument  -> prompt for every frame below (original behaviour)
 #   <frame> name -> prompt ONLY for that frame; other files untouched
-# living.json predates this script and is hand-maintained: never prompted for.
+# living.json predates this script but is now script-managed too: rotate it
+# with `install-frame-tokens.sh living` after revoking any leaked living token.
 set -e
 mkdir -p ~/.config/frame-ha
 
 ONLY="$1"
-for F in helen_ian study alexa; do
+for F in helen_ian study alexa living; do
   if [ -n "$ONLY" ] && [ "$F" != "$ONLY" ]; then continue; fi
   read -s -p "Paste the frame-$F token, then Enter: " TOK
   printf '\n%s\n' '{"url":"http://192.168.86.109:8123","token":"'"$TOK"'","frame":"'"$F"'"}' > ~/.config/frame-ha/$F.json
