@@ -217,13 +217,45 @@
       '</div><div class="rm-fanstate">' + (fanOn ? 'Fan ' + (fanPreset || 'On') : 'Fan off') + '</div></div>';
   }
 
+  // ------------------------------------------------------------ media (room TV)
+  // Chromecast-style player: reports unavailable whenever the TV is off or
+  // asleep, so the section shows an asleep state instead of hiding - the
+  // layout stays stable and a missing TV stays visible, not silent.
+  function mediaSection(rm) {
+    var m = rm.media;
+    var st = HA.state(m.id);
+    var un = HA.unavailable(m.id);
+    var title = HA.attr(m.id, 'media_title');
+    var vol = HA.attr(m.id, 'volume_level');
+    var volTxt = (st === 'playing' || st === 'paused') && vol !== null && vol !== undefined
+      ? ' \u00B7 Vol ' + Math.round(vol * 100) + '%' : '';
+    var state = un ? 'Asleep' :
+      st === 'off' ? 'Off' :
+      st === 'playing' ? 'Playing \u00B7 ' + (title || 'TV') :
+      st === 'paused' ? 'Paused \u00B7 ' + (title || 'TV') :
+      st === 'buffering' ? 'Buffering' :
+      st === 'idle' ? 'Ready' :
+      st === 'on' ? 'On' :
+      st === 'standby' ? 'Standby' : (st || 'Off');
+    var live = st === 'playing' || st === 'buffering';
+    var row = (un || st === 'off') ? '' :
+      '<div class="ac-ventrow rm-mediabtns">' +
+      '<button class="ac-ventbtn' + (st === 'playing' ? ' is-active' : '') + '" data-mplay="' + m.id + '">' + (live ? 'Pause' : 'Play') + '</button>' +
+      '<button class="ac-ventbtn" data-mvoldown="' + m.id + '">Vol \u2212</button>' +
+      '<button class="ac-ventbtn" data-mvolup="' + m.id + '">Vol +</button>' +
+      '</div>';
+    return '<div class="rm-sec"><div class="label">' + App.esc(m.name) + '</div>' +
+      '<div class="rm-mediastate">' + App.esc(state + volTxt) + '</div>' + row + '</div>';
+  }
+
   // ------------------------------------------------------------ layouts
   function singlePaint(r) {
     var title = r ? r.name : (C.profile ? C.profile().name : 'Room');
     var lights = r ? (r.kind === 'patio' ? C.patio.lights : (r.lights || [])) : [];
     var right = lightsSection(lights);
     if (r && r.kind === 'patio') right += fanSection();
-    else if (r) right += choresSection(r.chores);
+    if (r && r.media) right += mediaSection(r);
+    if (r && r.kind !== 'patio' && r) right += choresSection(r.chores);
     var left = '';
     if (r && r.aircon) left = zoneCard(r.aircon);
     else if (r && r.climate) { left = irCard(r); V.byClim = V.byClim || {}; V.byClim[r.climate] = r; }
@@ -239,19 +271,20 @@
 
   function multiPaint(rs) {
     var byClim = {};
-    var ac = [], lights = [], fan = '', chores = '';
+    var ac = [], lights = [], fan = '', media = '', chores = '';
     rs.forEach(function (rm) {
       if (rm.aircon) ac.push(zoneCard(rm.aircon));
       else if (rm.climate) { ac.push(irCard(rm)); byClim[rm.climate] = rm; }
       (rm.kind === 'patio' ? C.patio.lights : (rm.lights || [])).forEach(function (l) { lights.push(l); });
       if (rm.kind === 'patio') fan = fanSection();
+      if (rm.media) media += mediaSection(rm);
       if (rm.chores && rm.chores.length) chores += choresSection(rm.chores);
     });
     V.byClim = byClim;
     var body = '';
     if (ac.length) body += '<div class="rm-sec"><div class="label">Aircon</div><div class="rm-acgrid">' + ac.join('') + '</div></div>';
     body += lightsSection(lights);
-    body += fan + chores;
+    body += fan + media + chores;
     var title = C.profile ? C.profile().name : 'Room';
     return '<div class="rm-wrap">' +
       '<div class="rm-head"><div class="label">Room</div><div class="serif rm-title">' + App.esc(title) + '</div></div>' +
@@ -284,6 +317,27 @@
       if (f) {
         HA.callScript(C.patio.fan.scripts[f.dataset.pfan]).catch(function () {
           App.toast('Fan command failed', { tone: 'error', icon: 'bolt' });
+        });
+        return;
+      }
+      var mp = e.target.closest('[data-mplay]');
+      if (mp) {
+        HA.callService('media_player.media_play_pause', { entity_id: mp.dataset.mplay }).catch(function () {
+          App.toast('Couldn\u2019t reach the TV', { tone: 'error', icon: 'bolt' });
+        });
+        return;
+      }
+      var vd = e.target.closest('[data-mvoldown]');
+      if (vd) {
+        HA.callService('media_player.volume_down', { entity_id: vd.dataset.mvoldown }).catch(function () {
+          App.toast('Couldn\u2019t reach the TV', { tone: 'error', icon: 'bolt' });
+        });
+        return;
+      }
+      var vu = e.target.closest('[data-mvolup]');
+      if (vu) {
+        HA.callService('media_player.volume_up', { entity_id: vu.dataset.mvolup }).catch(function () {
+          App.toast('Couldn\u2019t reach the TV', { tone: 'error', icon: 'bolt' });
         });
         return;
       }

@@ -32,6 +32,8 @@
 .rm-chore .num { font-size: 32px; font-weight: 800; margin-left: auto; }
 .rm-chore small { font-size: var(--fs-min); color: var(--mute); font-weight: 700; text-transform: uppercase; }
 .rm-fanstate { margin-top: 10px; font-size: var(--fs-body); font-weight: 800; color: var(--ink-2); }
+.rm-mediastate { margin-top: 10px; font-size: var(--fs-body); font-weight: 800; color: var(--ink-2); }
+.rm-mediabtns { margin-top: 10px; }
 
 /* multi-room one-page layout (living + study frames): sections stack top to
    bottom, aircon cards sit in a responsive row. Scrolls only if a future

@@ -305,13 +305,14 @@
     // Room defs: aircon: '<aircon.zones key>' = AirTouch ducted zone
     // (climate + damper); climate: '<entity>' = standalone IR climate (Front
     // Lounge split); lights: tiles on the Room view; kind: 'patio' pulls the
-    // string lights + RF fan from the patio block above; chores: person ids.
+    // string lights + RF fan from the patio block above; media: {id, name} =
+    // a room media player (TV); chores: person ids.
     // Profiles list ONE OR MORE rooms: multi-room profiles (living, study)
     // render every listed room's controls on a single Room page - no tabs.
     profiles: {
       living:    { name: 'Living Room', landing: 'home', rooms: ['patio', 'frontlounge', 'family', 'kitchen', 'dining', 'theatre'], photosManifest: '/local/frame-photos/frame-photos.js' },
       helen_ian: { name: 'Helen + Ian', landing: 'room', rooms: ['helen_ian'], photosManifest: '/local/frame-photos/helen_ian/frame-photos.js', nightMode: true },
-      alexa:     { name: 'Alexa',       landing: 'room', rooms: ['alexa'],     photosManifest: '/local/frame-photos/alexa/frame-photos.js' },
+      alexa:     { name: 'Alexa',       landing: 'room', rooms: ['alexa'],     photosManifest: '/local/frame-photos/alexa/frame-photos.js', nightMode: true },
       kyle:      { name: 'Kyle',        landing: 'room', rooms: ['kyle'],      photosManifest: '/local/frame-photos/kyle/frame-photos.js' },
       marcus:    { name: 'Marcus',      landing: 'room', rooms: ['marcus'],    photosManifest: '/local/frame-photos/marcus/frame-photos.js' },
       connor:    { name: 'Connor',      landing: 'room', rooms: ['connor'],    photosManifest: '/local/frame-photos/connor/frame-photos.js' },
@@ -324,7 +325,11 @@
                              { id: 'switch.smart_plug_20041792822229251h3948e1e91a3cd4_outlet', name: 'Bed Lamp Ian', brightness: false },
                              { id: 'switch.smart_plug_20041747068605251h3948e1e91a3dba_outlet', name: 'Bed Lamp Helen', brightness: false }],
                    chores: ['helen', 'ian'] },
-      alexa:     { name: 'Alexa', aircon: 'alexa', lights: [{ id: 'light.alexa_lamp', name: 'Alexa Lamp', brightness: true }], chores: ['alexa'] },
+      // No lights: her room has none in HA (light.alexa_lamp is a Front
+      // Lounge device - it lives in the frontlounge room def, not here).
+      alexa:     { name: 'Alexa', aircon: 'alexa',
+                   media: { id: 'media_player.chromecast7886', name: 'TV' },
+                   chores: ['alexa'] },
       kyle:      { name: 'Kyle', aircon: 'kyle', lights: [{ id: 'light.ikea_of_sweden_tradfri_bulb_e14_cws_globe_806lm', name: 'Sphere Light', brightness: true }], chores: ['kyle'] },
       marcus:    { name: 'Marcus', aircon: 'marcus', lights: [], chores: ['marcus'] },
       connor:    { name: 'Connor', aircon: 'connor', lights: [], chores: ['connor'] },
@@ -382,6 +387,8 @@
       var PT = this.patio; // string lights + RF fan mirrors (state only; power via scripts)
       PT.lights.forEach(function (l) { add(l.id); });
       add(PT.fan.state); add(PT.fan.power);
+      var RM = this.rooms; // room media players (e.g. Alexa's TV)
+      Object.keys(RM).forEach(function (k) { if (RM[k].media) add(RM[k].media.id); });
       var s = this.security;
       add(s.modeEntity); add(s.guestMode); add(s.leakAggregate);
       s.doors.forEach(function (d) { add(d.id); });

@@ -128,6 +128,9 @@
 
   // music: sonos trio + preset rows (demo mirrors the live attribute shapes)
   S(st('media_player.sonos_move', 'paused', { friendly_name: 'Sonos Move', volume_level: 0.3, is_volume_muted: false, media_title: 'Rhiannon', media_artist: 'Fleetwood Mac', media_album_name: 'Greatest Hits', shuffle: true, source: 'Spotify Connect' }));
+  // alexa's room TV (Chromecast: unavailable whenever the TV is off/asleep;
+  // demo shows the paused-with-title branch so the Room view has a live shape)
+  S(st('media_player.chromecast7886', 'paused', { friendly_name: 'alexa\u2019s room TV', media_title: 'YouTube', volume_level: 0.2 }));
   S(st('media_player.family_room', 'idle', { friendly_name: 'Sonos Family Room', volume_level: 0.18, is_volume_muted: false }));
   S(st('media_player.dining_room', 'idle', { friendly_name: 'Sonos Dining Room', volume_level: 0.12, is_volume_muted: false }));
   S(st('todo.music_presets', '2', {
