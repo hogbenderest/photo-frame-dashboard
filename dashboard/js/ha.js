@@ -334,7 +334,12 @@
       HA.states = D ? D.states : {};
       setStatus('demo');
       if (window.DEMO_PAYLOADS) {
-        App.setTime(15, 18); // demo default: a busy weekday afternoon
+        // Demo default: a busy weekday afternoon - DESKTOP DEV ONLY. On a
+        // real frame the fake clock is wrong on a wall display, and its
+        // fixed offset bakes against the pre-NTP boot clock then inherits
+        // the whole NTP step when sync lands (the "9:56pm" incident). The
+        // frame shows the true system time; only dev browsers get 15:18.
+        if (!/Android/.test(navigator.userAgent)) App.setTime(15, 18);
         setTimeout(function () { App.toast('Demo data \u00B7 no Home Assistant connection', { ms: 5000, icon: 'bolt' }); }, 900);
       }
       App.emit('data');
