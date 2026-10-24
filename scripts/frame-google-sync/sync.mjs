@@ -36,6 +36,12 @@ import { execFileSync } from 'node:child_process';
 import { homedir, tmpdir } from 'node:os';
 import path from 'node:path';
 
+// fs/promises has no exists(); access() is the supported probe. This was a
+// latent bug: the missing-Drive-folder path (and the reauth path) crashed
+// with ReferenceError on every run instead of skipping, which blocked every
+// room configured after the first missing folder.
+const exists = (p) => access(p).then(() => true, () => false);
+
 const DIR = path.join(homedir(), '.config', 'frame-google-sync');
 const CONFIG = path.join(DIR, 'config.json');
 const TOKENS = path.join(DIR, 'tokens.json');
