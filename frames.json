@@ -1,8 +1,8 @@
 {
-  "_comment": "Frame registry. name -> IP (adb), profile (ha-config profiles key). Per-frame HA tokens live OUTSIDE the repo at ~/.config/frame-ha/<name>.json (url, token, frame). update-frame.sh fails hard if that file is missing - it never silently redeploys the previous frame's token. Fill IPs as each frame is taken over; DHCP-reserve each unit's wlan0 MAC.",
+  "_comment": "Frame registry. name -> IP (adb), profile (ha-config profiles key). Per-frame HA tokens live OUTSIDE the repo at ~/.config/frame-ha/<name>.json (url, token, frame). update-frame.sh fails hard if that file is missing - it never silently redeploys the previous frame's token. Fill IPs as each frame is taken over; DHCP-reserve each unit's wlan0 MAC. DUAL IP NOTE (alexa): the frame currently answers on the stale dynamic lease .207 (its dhcpcd lease file in /data keeps re-requesting it and the DHCP server honours it, even across cold boots); the UniFi MAC reservation for .198 has not been picked up yet. WHEN THE CHANGEOVER COMPLETES: forget the .207 lease in UniFi, bounce the frame's WiFi, verify it answers at .198, then swap ip and reserved_ip below and delete this sentence.",
   "living":    { "ip": "192.168.86.197:5555", "profile": "living" },
   "helen_ian": { "ip": "192.168.86.196:5555", "profile": "helen_ian" },
-  "alexa":     { "ip": "192.168.86.207:5555", "profile": "alexa" },
+  "alexa":     { "ip": "192.168.86.207:5555", "reserved_ip": "192.168.86.198:5555", "profile": "alexa" },
   "kyle":      { "ip": "TBD", "profile": "kyle" },
   "marcus":    { "ip": "TBD", "profile": "marcus" },
   "connor":    { "ip": "TBD", "profile": "connor" },
