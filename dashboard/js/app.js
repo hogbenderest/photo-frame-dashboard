@@ -264,15 +264,24 @@
   // ------------------------------------------------------------ idle
   App.idle = { home: 60, ambient: 120 };
   var idleSec = 0;
+  // Idle return target is the PROFILE LANDING, not a hard-coded 'home':
+  // bedroom frames (landing: 'room') must fall back to their Room after a
+  // stray tap-and-walk-away, not to the household overview. This was the
+  // "boots to #home" bug - the landing correction ran, then the idle timer
+  // navigated back to home 60 s later.
+  function idleTarget() {
+    var p = HACONFIG.profile && HACONFIG.profile();
+    return (p && p.landing) || 'home';
+  }
   function onIdleTick() {
     idleSec++;
     var blocked = $('#takeover').classList.contains('is-open');
     if (App.mode === 'nightdash' && idleSec >= 20) { App.setMode('night'); return; }
     if (App.mode !== 'day' || blocked) return;
-    if (idleSec === App.idle.home && App.current !== 'home' && App.current !== 'photos') { App.closeSheet(); App.go('home'); }
+    if (idleSec === App.idle.home && App.current !== idleTarget() && App.current !== 'photos') { App.closeSheet(); App.go(idleTarget()); }
     if (idleSec >= App.idle.ambient) {
       App.closeSheet();
-      App.go('home');
+      App.go(idleTarget());
       App.setMode(App.isNight() ? 'night' : 'ambient');
     }
   }
